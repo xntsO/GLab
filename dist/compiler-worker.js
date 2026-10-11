@@ -1,5 +1,5 @@
 /* Clang/LLD run entirely inside this worker. The source never leaves the browser. */
-importScripts('./vendor/compiler/shared.js', './vendor/compiler/header.js');
+importScripts('./vendor/compiler/shared.js', './vendor/compiler/header.js?v=2');
 let api, diagnostics = '';
 const cache = new Map();
 const clean = text => text.replace(/\x1b\[[0-9;]*m/g, '');

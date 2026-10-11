@@ -2,7 +2,7 @@ export class Compiler {
   constructor() {this.worker=null;this.pending=new Map();this.sequence=0;this.onProgress=()=>{};this.ready=false;this.initializing=null;}
   ensureWorker() {
     if(this.worker) return;
-    this.worker=new Worker(new URL('./compiler-worker.js',import.meta.url));
+    this.worker=new Worker(new URL('./compiler-worker.js?v=2',import.meta.url));
     this.worker.onmessage=({data})=> {
       if(data.type==='progress') {this.onProgress(data.message);return;}
       const request=this.pending.get(data.id);

@@ -1,5 +1,5 @@
 import {labs, starter} from './labs.js';
-import {Compiler, Runner} from './compiler.js';
+import {Compiler, Runner} from './compiler.js?v=2';
 
 const $ = id => document.getElementById(id);
 const compiler = new Compiler();
@@ -81,7 +81,7 @@ async function run(){
       onFrame:stats=>{if(token!==runToken)return;$('canvasPlaceholder').hidden=true;$('statusLed').className='status-led running';if(!busy)$('statusText').textContent=editor.getValue()===lastCode?'Running':'Edited · run to update';},
       onDiagnostic:message=>{if(token===runToken)appendLog(`Graphics: ${message}\n`);},
       onError:message=>handleFailure(new Error(message),token),
-      onTitle:title=>{if(token===runToken)canvas.setAttribute('aria-label',`${title}. Click to focus for keyboard and mouse interaction.`);},
+      onTitle:title=>{if(token!==runToken)return;$('windowTitle').textContent=title;$('windowTitle').title=title;canvas.setAttribute('aria-label',`${title}. Click to focus for keyboard and mouse interaction.`);},
       onMenu:menu=>{if(token===runToken)showMenu(menu);},
       onExit:code=>{if(token!==runToken)return;appendLog(`\nProgram exited with code ${code}.\n`);$('statusText').textContent=`Exited (${code})`;active=false;setBusy(false);}
     });
@@ -93,7 +93,7 @@ async function run(){
   }catch(error){handleFailure(error,token);}finally{if(token===runToken)setBusy(false);}
 }
 function stop(log=true){runToken++;if(busy)compiler.stop();runner?.stop();runner=null;active=false;setBusy(false);$('canvasMenu').hidden=true;$('statusLed').className='status-led';if(log){$('statusText').textContent='Stopped';appendLog('\nStopped. Your code is still saved.\n');}}
-function resetCanvas(){const old=$('canvas');const canvas=document.createElement('canvas');canvas.id='canvas';canvas.width=500;canvas.height=500;canvas.tabIndex=0;canvas.setAttribute('aria-label','OpenGL graphics output');old.replaceWith(canvas);$('canvasMount').style.aspectRatio='1';}
+function resetCanvas(){$('windowTitle').textContent='Graphics output';$('windowTitle').removeAttribute('title');const old=$('canvas');const canvas=document.createElement('canvas');canvas.id='canvas';canvas.width=500;canvas.height=500;canvas.tabIndex=0;canvas.setAttribute('aria-label','OpenGL graphics output');old.replaceWith(canvas);$('canvasMount').style.aspectRatio='1';}
 function attachCanvasEvents(canvas){
   const point=event=>{const rect=canvas.getBoundingClientRect();lastMouse={x:Math.floor((event.clientX-rect.left)*outputWidth/rect.width),y:Math.floor((event.clientY-rect.top)*outputHeight/rect.height)};return lastMouse;};
   const modifiers=e=>(e.shiftKey?1:0)|(e.ctrlKey?2:0)|(e.altKey?4:0);

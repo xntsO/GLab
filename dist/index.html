@@ -7,7 +7,7 @@
   <title>GL Lab | COMP 461 graphics workspace</title>
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./vendor/codemirror/codemirror.css">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=2">
 </head>
 <body>
 <header class="topbar">
@@ -33,7 +33,7 @@
         <div class="action-bar"><button id="runBtn" class="run-button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 3 11 7-11 7z"/></svg><span>Run program</span><kbd>Ctrl ↵</kbd></button><button id="stopBtn" class="outline-button" disabled><span class="stop-square" aria-hidden="true"></span>Stop</button><div class="file-actions"><button id="importBtn" class="text-button">Open file</button><button id="downloadBtn" class="text-button">Download</button><button id="resetBtn" class="text-button" title="Restore the original example">Reset</button><input id="fileInput" type="file" accept=".c,.cpp,.cc,.cxx,.h,.txt" hidden></div></div>
       </section>
       <section class="output-pane" aria-label="Program output">
-        <div class="pane-heading output-heading"><div class="output-title"><span class="status-led" id="statusLed"></span><h2>Graphics output</h2></div><div class="output-tools"><button id="snapshotBtn" class="small-button" title="Download the canvas as a PNG" aria-label="Download graphics image">PNG ↓</button><button id="fullscreenBtn" class="small-button" aria-label="Fullscreen graphics output">⛶</button></div></div>
+        <div class="pane-heading output-heading"><div class="output-title"><span class="status-led" id="statusLed"></span><h2 id="windowTitle" aria-live="polite">Graphics output</h2></div><div class="output-tools"><button id="snapshotBtn" class="small-button" title="Download the canvas as a PNG" aria-label="Download graphics image">PNG ↓</button><button id="fullscreenBtn" class="small-button" aria-label="Fullscreen graphics output">⛶</button></div></div>
         <div class="canvas-surround" id="canvasSurround"><div id="canvasMount"><canvas id="canvas" width="500" height="500" tabindex="0" aria-label="OpenGL graphics output. Click to focus for keyboard and mouse interaction."></canvas></div><div class="canvas-placeholder" id="canvasPlaceholder"><svg viewBox="0 0 130 110" aria-hidden="true"><path d="m65 9 54 91H11zM65 9v91M11 100l81-45M119 100 38 55"/></svg><h3>From code to canvas.</h3><p>Run your program to see it here.</p></div><div id="canvasMenu" class="canvas-menu" hidden></div></div>
         <div class="canvas-footer"><span id="canvasSize">500 × 500</span><span id="interactionHint">Click the canvas to interact</span></div>
         <section class="console" aria-label="Compiler and program messages"><div class="console-heading"><h2>Console</h2><button id="inputToggle" class="small-button" aria-expanded="false" aria-controls="inputPanel">Input</button><span id="statusText" role="status" aria-live="polite">Ready to compile</span><button id="clearConsole" class="small-button">Clear</button></div><div id="inputPanel" hidden><label for="stdin">Standard input · supplied when you press Run</label><textarea id="stdin" placeholder="Values for scanf or cin, separated by spaces or newlines" spellcheck="false"></textarea></div><div id="progressTrack" class="progress-track" hidden><div id="progressFill"></div></div><pre id="consoleOutput" aria-live="polite">Welcome to GL Lab. Choose a lab, edit the code, and press Run.
@@ -47,5 +47,5 @@ The C/C++ compiler runs on your device. First use downloads about 20 MB.</pre></
 <dialog id="resetDialog"><h2>Restore this example?</h2><p>Your saved edits for this lab will be replaced by the original example.</p><div class="dialog-actions"><button id="cancelReset" class="outline-button">Keep my edits</button><button id="confirmReset" class="run-button">Restore example</button></div></dialog>
 <div id="toast" role="status" hidden></div>
 <script src="./vendor/codemirror/codemirror.js"></script><script src="./vendor/codemirror/clike.js"></script><script src="./vendor/codemirror/matchbrackets.js"></script><script src="./vendor/codemirror/closebrackets.js"></script><script src="./vendor/codemirror/active-line.js"></script><script src="./vendor/codemirror/comment.js"></script><script src="./vendor/codemirror/searchcursor.js"></script>
-<script type="module" src="./app.js"></script>
+<script type="module" src="./app.js?v=2"></script>
 </body></html>

@@ -1,5 +1,5 @@
-import {createGraphics} from './graphics.js';
-import {runProgram} from './compiler.js';
+import {createGraphics} from './graphics.js?v=5';
+import {runProgram} from './compiler.js?v=5';
 let canvas,graphics,width=800,height=600;
 const send=(type,data)=>self.postMessage({type,data});
 self.onmessage=async ({data})=>{
@@ -13,7 +13,7 @@ self.onmessage=async ({data})=>{
       graphics=createGraphics(canvas,{
         onDiagnostic:message=>send('diagnostic',message),
         onError:error=>send('error',error.message || String(error)),
-        onFrame:stats=>send('frame',stats),onTitle:title=>send('title',title),onMenu:menu=>send('menu',menu),onResize:size=>send('resize',size)
+        onFrame:stats=>send('frame',stats),onTitle:title=>send('title',title),onMenu:menu=>send('menu',menu),onResize:size=>send('resize',size),onLoopEnd:()=>send('loopEnd',{reason:'Main loop ended.'})
       });
       graphics.resize(width,height);
       const result=await runProgram(data.wasm,graphics,{stdin:data.stdin,stdout:text=>send('stdout',text),onExit:code=>self.postMessage({type:'exit',code})});

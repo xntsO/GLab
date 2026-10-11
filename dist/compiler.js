@@ -2,7 +2,7 @@ export class Compiler {
   constructor() {this.worker=null;this.pending=new Map();this.sequence=0;this.onProgress=()=>{};this.ready=false;this.initializing=null;}
   ensureWorker() {
     if(this.worker) return;
-    this.worker=new Worker(new URL('./compiler-worker.js?v=2',import.meta.url));
+    this.worker=new Worker(new URL('./compiler-worker.js?v=5',import.meta.url));
     this.worker.onmessage=({data})=> {
       if(data.type==='progress') {this.onProgress(data.message);return;}
       const request=this.pending.get(data.id);
@@ -60,9 +60,10 @@ export async function runProgram(wasm,graphics,{stdout=()=>{},stdin='',onExit=()
   // GLUT owns the main loop. Suspend main before libc runs its exit handlers;
   // callbacks continue against the same Wasm memory and function table.
   if(env.glutMainLoop){const loop=env.glutMainLoop;env.glutMainLoop=(...args)=>{loop(...args);const yieldToBrowser=new Error('GLUT main loop is active.');yieldToBrowser.isProgramYield=true;throw yieldToBrowser;};}
+  for(const name of ['emscripten_set_main_loop','emscripten_set_main_loop_arg'])if(env[name]){const loop=env[name];env[name]=(...args)=>{loop(...args);const yieldToBrowser=new Error('Browser main loop is active.');yieldToBrowser.isProgramYield=true;throw yieldToBrowser;};}
   const imports={env,wasi_unstable:wasi.imports,wasi_snapshot_preview1:wasi.imports};
   for(const item of WebAssembly.Module.imports(module)){
-    if(item.kind==='function'&&typeof imports[item.module]?.[item.name]!=='function')throw new Error(`Unsupported or unresolved function: ${item.name}. Check its spelling and use the supported GL, GLU, GLUT or C/C++ standard-library APIs.`);
+    if(item.kind==='function'&&typeof imports[item.module]?.[item.name]!=='function')throw new Error(`Unsupported or unresolved function: ${item.name}. Check its spelling and use the supported GL, GLU, GLUT, GLFW or C/C++ standard-library APIs.`);
   }
   const result=await WebAssembly.instantiate(module,imports);
   wasi.attach(result);graphics.attach(result);
@@ -76,12 +77,12 @@ export class Runner {
     if(this.worker)return;
     if(this.transferred)throw new Error('Create a new Runner with a fresh canvas after Stop.');
     if(!this.canvas.transferControlToOffscreen)throw new Error('This browser needs OffscreenCanvas support. Use a current Chrome, Edge or Firefox.');
-    this.worker=new Worker(new URL('./compiler-runtime-worker.js',import.meta.url),{type:'module'});
+    this.worker=new Worker(new URL('./compiler-runtime-worker.js?v=5',import.meta.url),{type:'module'});
     this.worker.onmessage=({data})=>{
       if(data.type==='started'||data.type==='snapshot'||data.type==='error'){
         const p=this.pending.get(data.id);if(p){this.pending.delete(data.id);data.type==='error'?p.reject(new Error(data.message)):p.resolve(data.type==='snapshot'?data.blob:data);}
       }
-      const key={stdout:'stdout',frame:'onFrame',error:'onError',diagnostic:'onDiagnostic',title:'onTitle',menu:'onMenu',exit:'onExit',resize:'onResize'}[data.type];
+      const key={stdout:'stdout',frame:'onFrame',error:'onError',diagnostic:'onDiagnostic',title:'onTitle',menu:'onMenu',exit:'onExit',resize:'onResize',loopEnd:'onLoopEnd'}[data.type];
       if(key)this.hooks[key]?.(data.data ?? data.message ?? data.code);
     };
     this.worker.onerror=error=>{for(const p of this.pending.values())p.reject(new Error(error.message));this.pending.clear();this.hooks.onError?.(error.message);};

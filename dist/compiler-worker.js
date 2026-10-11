@@ -1,5 +1,5 @@
 /* Clang/LLD run entirely inside this worker. The source never leaves the browser. */
-importScripts('./vendor/compiler/shared.js', './vendor/compiler/header.js?v=2');
+importScripts('./vendor/compiler/shared.js', './vendor/compiler/header.js?v=5');
 let api, diagnostics = '';
 const cache = new Map();
 const clean = text => text.replace(/\x1b\[[0-9;]*m/g, '');
@@ -34,6 +34,11 @@ async function initialize() {
   api.memfs.addDirectory('include/gl');
   for(const directory of ['GL','gl'])for(const name of ['gl.h','Gl.h','glu.h','glut.h','freeglut.h']) api.memfs.addFile('include/'+directory+'/'+name,PLAYGROUND_GLUT_HEADER);
   api.memfs.addFile('include/GLUT/glut.h',PLAYGROUND_GLUT_HEADER);
+  api.memfs.addDirectory('include/GLFW');
+  api.memfs.addFile('include/GLFW/glfw3.h',PLAYGROUND_GLFW_HEADER);
+  api.memfs.addFile('include/emscripten.h',PLAYGROUND_EMSCRIPTEN_HEADER);
+  api.memfs.addDirectory('include/emscripten');
+  api.memfs.addFile('include/emscripten/emscripten.h',PLAYGROUND_EMSCRIPTEN_HEADER);
   // Legacy lab programs often include windows.h before GLUT. This empty
   // compatibility header permits that include without exposing Windows APIs.
   api.memfs.addFile('include/windows.h','#ifndef PLAYGROUND_WINDOWS_H\n#define PLAYGROUND_WINDOWS_H\n/* Include-only compatibility stub. Windows OS APIs are unavailable. */\n#endif\n');

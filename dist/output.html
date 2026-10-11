@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f2ec"><title>Graphics output | GL Lab</title><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./output.css?v=5"></head>
+<body><header><div><a href="./" target="_blank" rel="noopener">GL Lab</a><h1 id="title">Graphics output</h1></div><button id="stop" disabled>Stop program</button></header>
+<main id="surround"><div id="mount"><canvas id="canvas" width="500" height="500" tabindex="0" aria-label="Program output. Click to focus for keyboard and mouse controls."></canvas></div><p id="placeholder">Run a program in the editor to see it here.</p><div id="menu" role="menu" hidden></div></main>
+<footer><span id="size">500 × 500</span><span id="status" role="status">Connecting to editor…</span><span>Click the canvas to interact</span></footer>
+<p class="dependency">Live view of the editor's program. Keep the editor tab open. Rerunning there updates this view.</p>
+<details><summary>Program console</summary><pre id="console"></pre></details>
+<script type="module" src="./output.js?v=5"></script></body></html>

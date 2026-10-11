@@ -1,6 +1,6 @@
 compiler-work/
 runtime-tests/
-*.tar.gz
-*.zip
+/deploy.tar.gz
+/deploy.zip
 *.log
 .openai/*credential*

@@ -1,0 +1,6 @@
+compiler-work/
+runtime-tests/
+*.tar.gz
+*.zip
+*.log
+.openai/*credential*

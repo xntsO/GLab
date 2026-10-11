@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#15253b">
+  <meta name="description" content="Write C and C++, run OpenGL programs, and explore the COMP 461 computer graphics labs in your browser.">
+  <title>GL Lab | COMP 461 graphics workspace</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./vendor/codemirror/codemirror.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./" aria-label="GL Lab home"><svg viewBox="0 0 36 40" aria-hidden="true"><path d="m18 2 16 9v18l-16 9L2 29V11zM2 11l16 9 16-9M18 20v18M10 6l16 9v18"/></svg><strong>GL Lab<span>Computer graphics workspace</span></strong></a>
+  <span class="course">COMP 461 <span>/</span> OpenGL + C/C++</span>
+  <div class="header-actions"><button id="helpBtn" class="text-button">Guide & compatibility</button><button id="sidebarToggle" class="icon-button mobile-only" aria-label="Toggle lab library">☰</button></div>
+</header>
+<div class="workspace">
+  <aside id="sidebar" class="sidebar" aria-label="Lab library">
+    <div class="library-heading"><h2>Lab library</h2><span id="labCount" class="count">17</span></div>
+    <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5"/></svg><input id="labSearch" type="search" placeholder="Find a lab…" aria-label="Search labs"></label>
+    <nav id="labList" aria-label="Choose a lab"></nav>
+    <div class="sidebar-bottom"><button id="newBtn" class="new-button"><span aria-hidden="true">+</span> New program</button><p>Your edits stay in this browser.<br>Download a copy to keep it.</p></div>
+  </aside>
+  <main class="main">
+    <section class="lesson-heading" aria-labelledby="lessonTitle"><div><div class="breadcrumb" id="breadcrumb">Foundations <span>/</span> Lab 02</div><h1 id="lessonTitle">Draw a triangle</h1><p id="lessonDescription">Explore vertices, color, and your first OpenGL primitive.</p></div><button id="lessonToggle" class="outline-button" aria-expanded="false" aria-controls="lessonNotes">Lab notes <span aria-hidden="true">↗</span></button></section>
+    <section id="lessonNotes" class="lesson-notes" hidden><div><h2>Try this</h2><p id="exercise"></p></div><div><h2>About this example</h2><ul id="notes"></ul><p id="pageReference"></p></div></section>
+    <div class="workbench">
+      <section class="editor-pane" aria-label="Source code editor">
+        <div class="pane-heading"><div class="file-tab"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 5-5 5 5 5m6-10 5 5-5 5"/></svg><span id="fileName">triangle.cpp</span><span id="dirtyDot" class="dirty-dot" hidden aria-label="Modified example"></span></div><div class="editor-tools"><label class="sr-only" for="language">Language</label><select id="language"><option value="cpp">C++17</option><option value="c">C11</option></select><button id="fontDown" class="small-button" aria-label="Decrease editor font size">A−</button><button id="fontUp" class="small-button" aria-label="Increase editor font size">A+</button></div></div>
+        <div id="editorHost"><label class="sr-only" for="source">C or C++ source code</label><textarea id="source" spellcheck="false"></textarea></div>
+        <div class="editor-bottom"><span id="cursorPosition">Ln 1, Col 1</span><span id="savedState">Saved in this browser</span><span>UTF-8</span></div>
+        <div class="action-bar"><button id="runBtn" class="run-button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 3 11 7-11 7z"/></svg><span>Run program</span><kbd>Ctrl ↵</kbd></button><button id="stopBtn" class="outline-button" disabled><span class="stop-square" aria-hidden="true"></span>Stop</button><div class="file-actions"><button id="importBtn" class="text-button">Open file</button><button id="downloadBtn" class="text-button">Download</button><button id="resetBtn" class="text-button" title="Restore the original example">Reset</button><input id="fileInput" type="file" accept=".c,.cpp,.cc,.cxx,.h,.txt" hidden></div></div>
+      </section>
+      <section class="output-pane" aria-label="Program output">
+        <div class="pane-heading output-heading"><div class="output-title"><span class="status-led" id="statusLed"></span><h2>Graphics output</h2></div><div class="output-tools"><button id="snapshotBtn" class="small-button" title="Download the canvas as a PNG" aria-label="Download graphics image">PNG ↓</button><button id="fullscreenBtn" class="small-button" aria-label="Fullscreen graphics output">⛶</button></div></div>
+        <div class="canvas-surround" id="canvasSurround"><div id="canvasMount"><canvas id="canvas" width="500" height="500" tabindex="0" aria-label="OpenGL graphics output. Click to focus for keyboard and mouse interaction."></canvas></div><div class="canvas-placeholder" id="canvasPlaceholder"><svg viewBox="0 0 130 110" aria-hidden="true"><path d="m65 9 54 91H11zM65 9v91M11 100l81-45M119 100 38 55"/></svg><h3>From code to canvas.</h3><p>Run your program to see it here.</p></div><div id="canvasMenu" class="canvas-menu" hidden></div></div>
+        <div class="canvas-footer"><span id="canvasSize">500 × 500</span><span id="interactionHint">Click the canvas to interact</span></div>
+        <section class="console" aria-label="Compiler and program messages"><div class="console-heading"><h2>Console</h2><button id="inputToggle" class="small-button" aria-expanded="false" aria-controls="inputPanel">Input</button><span id="statusText" role="status" aria-live="polite">Ready to compile</span><button id="clearConsole" class="small-button">Clear</button></div><div id="inputPanel" hidden><label for="stdin">Standard input · supplied when you press Run</label><textarea id="stdin" placeholder="Values for scanf or cin, separated by spaces or newlines" spellcheck="false"></textarea></div><div id="progressTrack" class="progress-track" hidden><div id="progressFill"></div></div><pre id="consoleOutput" aria-live="polite">Welcome to GL Lab. Choose a lab, edit the code, and press Run.
+The C/C++ compiler runs on your device. First use downloads about 20 MB.</pre></section>
+      </section>
+    </div>
+    <footer class="workspace-footer"><span><span class="privacy-dot"></span> Compiles on your device</span><span>Clang / WebAssembly / WebGL</span><button id="shortcutsBtn" class="text-button">Keyboard shortcuts</button></footer>
+  </main>
+</div>
+<dialog id="guideDialog"><div class="dialog-heading"><div><span class="dialog-kicker">Welcome to your graphics lab</span><h2>Write. Run. Explore.</h2></div><button id="closeGuide" class="icon-button" aria-label="Close guide">×</button></div><div class="guide-content"><p>This workspace runs real C and C++ code in your browser. Start with one of the 17 examples adapted from the COMP 461 lab manual, or open your own single source file.</p><ol><li><strong>Choose a lab.</strong> Each example includes an exercise and notes.</li><li><strong>Edit the C/C++ source.</strong> Changes save automatically in this browser.</li><li><strong>Press Run.</strong> Compiler errors appear in the console. Click the canvas before using keyboard or mouse controls.</li></ol><h3>What is supported?</h3><p>The lab runtime implements a focused set of legacy OpenGL, GLU, and GLUT: immediate-mode shapes, colors, matrices, projections, depth, lighting, materials, standard GLUT geometry, callbacks, and menus. It uses WebGL to render the result.</p><p><strong>This is a teaching compatibility runtime, not a complete desktop OpenGL installation.</strong> Unsupported functions produce compile/link errors or runtime diagnostics. Native operating-system APIs, multiple windows, and external C/C++ packages are not included. Browser rendering can differ from your desktop, particularly line patterns and lighting.</p><p>The examples use editable constants in place of terminal input. Standard output (<code>printf</code> and <code>std::cout</code>) appears in the console. For <code>scanf</code> or <code>cin</code>, open <strong>Input</strong> in the console and enter the values before pressing Run. Input is supplied once per run; it is not an interactive terminal.</p><h3>Keep your work</h3><p>Your drafts are stored per lab in this browser. Download your source before clearing browser data or switching devices. Importing a file opens it as your personal program.</p><h3>Shortcuts</h3><dl class="shortcuts"><dt>Ctrl / ⌘ + Enter</dt><dd>Compile and run</dd><dt>Ctrl / ⌘ + S</dt><dd>Download source</dd><dt>Ctrl / ⌘ + /</dt><dd>Toggle code comment</dd><dt>Escape</dt><dd>Close this guide or a canvas menu</dd></dl><h3>Credits</h3><p>Lab topics follow Jazan University’s COMP 461 Computer Graphics manual. Examples are adapted for this browser runtime. Compiler: LLVM/Clang via binji/wasm-clang. Editor: CodeMirror. Dependency licenses are included with the site.</p></div></dialog>
+<dialog id="resetDialog"><h2>Restore this example?</h2><p>Your saved edits for this lab will be replaced by the original example.</p><div class="dialog-actions"><button id="cancelReset" class="outline-button">Keep my edits</button><button id="confirmReset" class="run-button">Restore example</button></div></dialog>
+<div id="toast" role="status" hidden></div>
+<script src="./vendor/codemirror/codemirror.js"></script><script src="./vendor/codemirror/clike.js"></script><script src="./vendor/codemirror/matchbrackets.js"></script><script src="./vendor/codemirror/closebrackets.js"></script><script src="./vendor/codemirror/active-line.js"></script><script src="./vendor/codemirror/comment.js"></script><script src="./vendor/codemirror/searchcursor.js"></script>
+<script type="module" src="./app.js"></script>
+</body></html>

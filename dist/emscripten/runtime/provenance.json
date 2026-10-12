@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/ptitSeb/gl4es",
+  "revision": "ec16bedd8819c475326f4f1a3063772c6d986e06",
+  "commitDate": "2026-10-04T14:27:29Z",
+  "sourceArchiveSha256": "b115753aa95146022f8e4a51d0a8c8899140e5d365859f646f7ce3b7ab7c6376",
+  "sourcePackageSha256": "53e97e5aa6f2118259e732115d4de64a2d349536eff97ff5596cabf67984a23f",
+  "sourceCount": 69,
+  "fileCount": 189,
+  "missingSources": [],
+  "compiler": "Browser Emception Emscripten 3.1.24-git",
+  "buildStatus": "verified browser compilation and GL4ES fixed function drawing",
+  "sourceSelection": "Upstream src/CMakeLists.txt GL_SRC plus non-Linux src/glx/hardext.c",
+  "archiveSha256": "930a45d86a12cb73d5cf9a01378a1099dcead44295c54fc35b72539137cb0c02",
+  "archiveBytes": 1882630,
+  "buildDurationSeconds": 50.40280000001192,
+  "buildEvidence": "../../evidence/gl4es-build-evidence.json",
+  "wasmObjectCount": 69,
+  "acceptanceEvidence": "../../evidence/emscripten-acceptance-final.json",
+  "workspaceScreenshot": "../../evidence/emscripten-tailscale-gl4es.jpg"
+}

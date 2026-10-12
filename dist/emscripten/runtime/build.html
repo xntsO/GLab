@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Build genuine GL4ES in the browser</title>
+<style>body{font:16px system-ui;margin:32px;background:#101821;color:#e3edf6}button,a{padding:12px;color:#8ce0ce}button{background:#263748;border:1px solid #668}pre{white-space:pre-wrap;overflow-wrap:anywhere}progress{width:100%}</style>
+<h1>Build upstream GL4ES</h1>
+<p>69 C translation units compile with the browser Emscripten SDK. emar creates the Wasm object archive.</p>
+<button id="build">Build GL4ES archive</button> <span id="status">Ready</span>
+<progress id="progress" max="69" value="0"></progress>
+<div id="downloads"></div><pre id="log"></pre>
+<script type="module">
+import {createCompiler} from '../toolchain/compiler-client.js';
+import {buildGL4ES} from './build-gl4es.js';
+const log=document.querySelector('#log'), status=document.querySelector('#status');
+const compiler=createCompiler({onLog(text,stream){if(stream==='stderr')log.textContent+=text+'\n';}});
+function download(bytes,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes],{type}));a.download=name;a.textContent='Download '+name;document.querySelector('#downloads').append(a);return a;}
+document.querySelector('#build').onclick=async()=>{
+  document.querySelector('#build').disabled=true;
+  try{
+    const result=await buildGL4ES(compiler,event=>{
+      document.querySelector('#progress').value=event.index;
+      status.textContent=event.done?'Build complete':`${event.index+1}/${event.total} ${event.source}`;
+    });
+    globalThis.gl4esBuildResult=result;
+    download(result.archive,'libGL.a','application/octet-stream');
+    download(JSON.stringify(result.evidence,null,2),'gl4es-build-evidence.json','application/json');
+    status.textContent=`Built ${result.evidence.archiveBytes} bytes in ${result.evidence.durationSeconds.toFixed(1)} seconds`;
+    log.textContent+=JSON.stringify({...result.evidence,records:undefined},null,2);
+    document.body.dataset.build='passed';
+  }catch(error){log.textContent+=error.stack+'\n';if(error.records)log.textContent+=JSON.stringify(error.records,null,2);status.textContent='Build failed';document.body.dataset.build='failed';document.querySelector('#build').disabled=false;}
+};
+</script></html>

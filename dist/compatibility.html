@@ -1,61 +1,20 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GL Lab · API compatibility</title>
 <style>body{margin:0;background:#0c1422;color:#dfe7f4;font:16px/1.65 system-ui,sans-serif}main{max-width:1040px;margin:auto;padding:48px 24px 80px}a{color:#70d6ca}h1{font-size:40px;line-height:1.15;color:white;margin:30px 0 16px}h2{color:white;font-size:24px;margin-top:40px}.intro{font-size:19px;max-width:850px;color:#abbcd4}table{border-collapse:collapse;width:100%;margin:24px 0}th,td{text-align:left;vertical-align:top;border-bottom:1px solid #2a3950;padding:15px 12px}th{color:#fff}code{font-family:ui-monospace,monospace;background:#162238;padding:2px 5px;border-radius:4px}pre{white-space:pre;overflow:auto;background:#162238;border:1px solid #2a3950;padding:20px;border-radius:10px;font:14px/1.6 ui-monospace,monospace}pre code{padding:0}li{margin:8px 0}.note{padding:18px 22px;background:#182333;border-left:3px solid #70d6ca;margin:24px 0}.links{display:flex;gap:20px;flex-wrap:wrap}@media(max-width:640px){h1{font-size:32px}th,td{padding:12px 5px;font-size:14px}}</style></head>
-<body><main><a href="./">← Back to GL Lab</a><h1>What runs in the browser</h1>
-<p class="intro">GL Lab compiles C11 and C++17 with Clang 8 into WebAssembly on your device. A WebGL renderer implements the fixed-function commands listed here. This is a coursework compatibility layer with selected GLU, GLUT and GLFW APIs. It does not provide a complete desktop OpenGL driver.</p>
-<div class="links"><a href="graphics-api.json">Download the implemented API manifest</a><a href="#glfw">GLFW browser example</a><a href="#desktop">Desktop feature requirements</a></div>
-<table><thead><tr><th>Area</th><th>Implemented behavior</th><th>Limits</th></tr></thead><tbody>
-<tr><td>Drawing</td><td><code>glBegin/glEnd</code>, vertex/color/normal scalar and vector calls; points, lines, triangles, strips, fans, quads and polygons; indexed arrays with <code>glVertexPointer</code>, <code>glColorPointer</code>, <code>glNormalPointer</code>, <code>glDrawArrays</code>, <code>glDrawElements</code>.</td><td>Client memory only. No VBOs, VAOs or texture coordinate arrays. Polygons must be convex. Integer colors and normals are normalized.</td></tr>
-<tr><td>Transforms</td><td>Modelview and projection stacks, float/double matrices, translate/rotate/scale, orthographic/frustum/perspective projection, <code>gluLookAt</code>, viewport and matrix queries.</td><td>No texture matrix stack. Matrix stacks are limited to 64 entries.</td></tr>
-<tr><td>Render state</td><td>Depth test, blending, face culling, scissor, point size, wide lines, line stipple, flat/smooth shading and polygon fill/line/point modes.</td><td>Polygon mode applies to both faces. Browser antialiasing is enabled at canvas creation. Point/line/polygon smoothing capabilities are rejected. Point sizes below one pixel are clamped.</td></tr>
-<tr><td>Lighting</td><td>Eight lights, ambient/diffuse/specular/emission materials, shininess, color material, normalized transformed normals, positional/directional lights, attenuation and spotlights.</td><td>Lighting is computed at vertices on the CPU. One material applies to both faces; two-sided lighting is rejected.</td></tr>
-<tr><td>Display lists</td><td><code>glGenLists</code>, <code>glNewList</code>, <code>glEndList</code>, <code>glCallList</code>, <code>glDeleteLists</code>, <code>glIsList</code>. Scalar drawing/state commands, vertex/color/normal vectors, matrices and client-array draws copy their data when compiled.</td><td>Nested calls are limited to 64. Pointer-based light/material calls inside lists are rejected; set that state outside the list. No <code>glCallLists</code> or list-base mechanism.</td></tr>
-<tr><td>GLU geometry</td><td>Quadric creation/deletion, spheres, cylinders, disks and partial disks. Fill/line/point styles, smooth/flat/no normals and inside/outside orientation.</td><td>Slices are 3–200; stacks/loops 1–200. Silhouettes and textured quadrics are rejected. Cylinders are uncapped as in GLU. No tessellator, NURBS or mipmap builders.</td></tr>
-<tr><td>GLUT</td><td>One canvas window; display/reshape/keyboard/special-key/mouse/motion callbacks; timers, idle callbacks, menus, modifiers, redisplay, swap/flush, basic window queries. Solid/wire spheres, cubes, cones, toruses and Utah teapots.</td><td>Desktop placement is ignored with a diagnostic. Browser presentation replaces front/back window buffers. No multiple windows, overlays, game mode, color-index, accumulation, stencil, luminance or stereo buffers.</td></tr>
-<tr><td>Bitmap text</td><td><code>glRasterPos</code>, <code>glWindowPos2</code>, <code>glutBitmapCharacter</code>, <code>glutBitmapString</code>, width/height/length queries and seven font constants. Raster positions use the active matrices and clip volume; characters advance in pixels.</td><td>Glyphs use browser monospace, serif and sans-serif fonts. Appearance and proportional metrics approximate GLUT fonts. Pixel coverage is thresholded. No stroke fonts.</td></tr>
-<tr><td>GLFW</td><td>Single-window creation/context selection, framebuffers/window size, title, user pointer, time, close flag, key/character/mouse/cursor/resize callbacks, input polling, buffer flush and a browser callback loop.</td><td>The loop must yield through <code>emscripten_set_main_loop</code> or <code>emscripten_set_main_loop_arg</code>. This header provides only these callback helpers and cancellation. It is not the Emscripten toolchain. Modern/core context hints, monitors, shared contexts and swap intervals other than one are rejected.</td></tr>
+<body><main><a href="./">← Back to GL Lab</a><h1>Compatibility and limitations</h1>
+<p class="intro">GL Lab compiles C11 and C++17 with Emscripten 3.1.24 in your browser. Generated JavaScript and WebAssembly run on your device. Legacy OpenGL uses GL4ES 1.1.7 to draw through WebGL.</p>
+<table><thead><tr><th>Area</th><th>Available</th><th>Current limit</th></tr></thead><tbody>
+<tr><td>C and C++</td><td>Real compiler diagnostics, standard libraries, console output and a virtual filesystem.</td><td>The editor opens one source file at a time. Arbitrary desktop packages, native executables and operating-system APIs are unavailable.</td></tr>
+<tr><td>OpenGL</td><td>GL4ES translates supported legacy drawing, matrices and rendering state to WebGL. GLUT and GLFW sources select the needed compatibility libraries automatically.</td><td>This is not a complete desktop OpenGL driver. Supported rendering depends on GL4ES, WebGL and the browser. A reported OpenGL version does not guarantee every API or extension.</td></tr>
+<tr><td>GLUT, GLU and GLFW</td><td>A single graphics canvas with browser callbacks. Compatibility helpers preserve the existing GLUT source workflow.</td><td>Desktop window placement, multiple native windows and full freeglut/GLU coverage are unavailable. See the verification scope below.</td></tr>
+<tr><td>Input and files</td><td>Supply text in the console's Input panel before Run for <code>scanf</code> or <code>cin</code>. Programs can create and read in-memory files.</td><td>Input is supplied once per run, not through an interactive terminal. Program files disappear when the run is disposed. Host filesystem access is not provided.</td></tr>
+<tr><td>Graphics controls</td><td>Canvas keyboard/mouse input, PNG export, fullscreen and a separate output view.</td><td>The editor receives canvas frames at up to about 30 fps; the separate output view mirrors at up to about 15 fps. The program's own loop can run at a different rate.</td></tr>
+<tr><td>Build options</td><td>Extra compiler arguments and downloadable generated JavaScript/Wasm.</td><td>The workspace controls output names and runtime settings. It does not provide a project build system or a package installer. Exported files need a web page to load the generated module.</td></tr>
+<tr><td>Phones and resources</td><td>Compilation and rendering take place on the visiting device. The public site needs no Tailscale connection or desktop server.</td><td>First use loads about 25 MB of compiler tools plus the selected libraries. Compilation can consume hundreds of MB of memory. Device/browser limits can prevent larger programs from compiling.</td></tr>
 </tbody></table>
-<p>Headers accept common <code>GL/glut.h</code>, <code>GL/freeglut.h</code>, <code>GL/gl.h</code>, <code>GL/glu.h</code>, lowercase aliases, <code>GLUT/glut.h</code>, <code>GLFW/glfw3.h</code>, and <code>emscripten.h</code>. <code>windows.h</code> is include-only compatibility; Windows APIs are unavailable. An unsupported function, state or flag produces a compiler or runtime diagnostic. Declaring a function yourself does not add an implementation.</p>
-<h2 id="glfw">Use a callback for each GLFW frame</h2>
-<p>A desktop <code>while (!glfwWindowShouldClose(window))</code> loop prevents this synchronous WebAssembly build from handling browser messages. It fails with a diagnostic. Move the loop body into a callback and pass <code>simulateInfiniteLoop=1</code>, so C/C++ state stays alive while the browser schedules frames. The supported FPS values are zero or 60, both using the browser frame scheduler.</p>
-<pre><code>#include &lt;GLFW/glfw3.h&gt;
-#include &lt;emscripten.h&gt;
-
-GLFWwindow *window;
-void frame(void) {
-    glfwPollEvents();
-    if (glfwWindowShouldClose(window)) {
-        emscripten_cancel_main_loop();
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return;
-    }
-    glClear(GL_COLOR_BUFFER_BIT);
-    glBegin(GL_TRIANGLES);
-    glColor3f(0.2f, 0.8f, 1.0f);
-    glVertex2f(-0.6f, -0.5f);
-    glVertex2f( 0.6f, -0.5f);
-    glVertex2f( 0.0f,  0.6f);
-    glEnd();
-    glfwSwapBuffers(window);
-}
-int main(void) {
-    if (!glfwInit()) return 1;
-    window = glfwCreateWindow(640, 480, "GLFW", 0, 0);
-    glfwMakeContextCurrent(window);
-    emscripten_set_main_loop(frame, 0, 1);
-    return 0;
-}</code></pre>
-<h2 id="desktop">When a program needs desktop features</h2>
-<p>GL Lab already uses your device: compilation and WebAssembly execute on your CPU, and WebGL uses the graphics capabilities exposed by your browser, normally through your GPU. Your source code stays on your device. More CPU or GPU power does not remove the browser's API restrictions.</p>
-<p>A separately installed local helper could compile and run native programs with your computer's OpenGL driver, then present their output alongside a browser editor. That approach needs an installation and permission to execute local code; it is not included in this website. It would avoid renting a GPU server, with support depending on each student's operating system and graphics driver.</p>
-<p>Desktop GLSL, textures, framebuffer objects, compute shaders, geometry shaders, driver extensions, OS integration and the full GLUT/GLFW libraries require a native environment or a separate implementation. Browser-only GL Lab currently does not implement them.</p>
-<p>A GPU server can run the native program and stream its desktop to a browser, using a system such as <a href="https://selkies-project.github.io/selkies/">Selkies</a>. This route requires a GPU host, native compiler and libraries, networking and a managed remote session. It cannot be supplied by a static website alone. Another route is to port selected applications to Emscripten/WebGL and adapt their event loops; legacy OpenGL emulation still has documented limits.</p>
-<h2>Reference documentation</h2><ul>
-<li><a href="https://registry.khronos.org/OpenGL-Refpages/">Khronos OpenGL and GLU references</a></li>
-<li><a href="https://registry.khronos.org/OpenGL/specs/gl/glu1.3.pdf">GLU 1.3 specification, quadrics</a></li>
-<li><a href="https://freeglut.sourceforge.net/docs/api.php">freeglut API, bitmap fonts and callbacks</a></li>
-<li><a href="https://www.glfw.org/docs/latest/input_guide.html">GLFW input and polling guide</a></li>
-<li><a href="https://emscripten.org/docs/porting/emscripten-runtime-environment.html">Emscripten browser runtime and event loops</a></li>
-<li><a href="https://emscripten.org/docs/porting/multimedia_and_graphics/OpenGL-support.html">Emscripten OpenGL support and legacy emulation limits</a></li>
-</ul></main></body></html>
+<h2>Event loops must yield</h2><p>Use GLUT callbacks or <code>emscripten_set_main_loop</code> for animation. A desktop <code>while</code> loop that never yields can freeze the browser tab. Stop can terminate compilation and cooperative running programs, but cannot reliably interrupt JavaScript or WebAssembly that blocks the tab's event loop.</p>
+<h2>SDK and threading</h2><p>This deployment pins Emscripten 3.1.24 and GL4ES 1.1.7. It is not the latest Emscripten SDK. The browser compiler is single-threaded; pthread/SharedArrayBuffer builds are outside the supported workspace configuration. Newer Emscripten ports and settings may be unavailable.</p>
+<h2>Verification scope</h2><p>The merge checks compile and execute source through the same Compiler and Runner used by the editor. They cover C console input, C++ standard-library and virtual-file operations, legacy GLUT/GLU drawing, GLFW, canvas pixels, keyboard input, compile-error recovery and stop/restart. This scope does not establish support for every OpenGL function, shader, extension or physical phone.</p>
+<h2>Keep your source</h2><p>Existing drafts remain under the same browser and domain. Drafts are local to that browser. Download or copy important code before clearing browser data or switching devices. The compiler does not upload your source to a compilation server.</p>
+<h2>Components</h2><p>Emscripten via Emception, LLVM/Clang, Binaryen, GL4ES and CodeMirror. Licenses and source provenance are included with the hosted assets.</p>
+</main></body></html>

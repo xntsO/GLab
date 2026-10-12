@@ -1,0 +1,426 @@
+{
+  "archive": "libGL.a",
+  "archiveBytes": 1882630,
+  "sha256": "930a45d86a12cb73d5cf9a01378a1099dcead44295c54fc35b72539137cb0c02",
+  "wasmObjectCount": 69,
+  "metadata": [
+    "symbol table",
+    "long filename table"
+  ],
+  "objects": [
+    {
+      "name": "src_gl_arbconverter.o",
+      "bytes": 4513,
+      "format": "WebAssembly version 1",
+      "sha256": "1532c61b34f0f821a7c5668d204b82e2e3a34f6df945962f1c6aedb870f26fda"
+    },
+    {
+      "name": "src_gl_arbgenerator.o",
+      "bytes": 365138,
+      "format": "WebAssembly version 1",
+      "sha256": "4d9a0743df774efb6b40ec3ad8043953f8da9bb8ad98619a570aa7e11ff99eb9"
+    },
+    {
+      "name": "src_gl_arbhelper.o",
+      "bytes": 7399,
+      "format": "WebAssembly version 1",
+      "sha256": "77f34479d1b0120291ace4fd598a4e6e1df63dea1fca808a5b17659c4d8623d1"
+    },
+    {
+      "name": "src_gl_arbparser.o",
+      "bytes": 49890,
+      "format": "WebAssembly version 1",
+      "sha256": "0a63f57fcebcf576fa681ff6e833618ceb56356c181d89f92540aca41bb4ec28"
+    },
+    {
+      "name": "src_gl_array.o",
+      "bytes": 33945,
+      "format": "WebAssembly version 1",
+      "sha256": "78a728a4921f231d03260ae4fb1b0cb1bc092c5553c3c5f8063ef6776610ac92"
+    },
+    {
+      "name": "src_gl_blit.o",
+      "bytes": 21373,
+      "format": "WebAssembly version 1",
+      "sha256": "ba6b9572437a0b3aa0f898a166fdac9301910efe0dc2610c0611a646a13fcba7"
+    },
+    {
+      "name": "src_gl_blend.o",
+      "bytes": 9532,
+      "format": "WebAssembly version 1",
+      "sha256": "91c50811c8d82f9c6b56704e81819e55df890527f211571547e89d335866b264"
+    },
+    {
+      "name": "src_gl_buffers.o",
+      "bytes": 33697,
+      "format": "WebAssembly version 1",
+      "sha256": "496a488b3c2a5b64fb7ea90e6317c2ff9174f05d82417c27ecd50e73192d2f3e"
+    },
+    {
+      "name": "src_gl_build_info.o",
+      "bytes": 676,
+      "format": "WebAssembly version 1",
+      "sha256": "bed8c44184f5e4a4385c2d3c523f1c703ff29cbcc116a20c701c4326d7023898"
+    },
+    {
+      "name": "src_gl_debug.o",
+      "bytes": 34486,
+      "format": "WebAssembly version 1",
+      "sha256": "f550182d7cc1b3e22061565bcd7e888570b79e13baf4c1ae12fc7190c1a61990"
+    },
+    {
+      "name": "src_gl_decompress.o",
+      "bytes": 10412,
+      "format": "WebAssembly version 1",
+      "sha256": "30e5fc92a989dbc9accda0c1b2b88b67a71a83eadab9e90405ac7fd5f9e694f4"
+    },
+    {
+      "name": "src_gl_depth.o",
+      "bytes": 5310,
+      "format": "WebAssembly version 1",
+      "sha256": "47d3eda098a5d7c9db4ef66ff8175ccd0d53dd32c53cafd95422c38aa8a0ea09"
+    },
+    {
+      "name": "src_gl_directstate.o",
+      "bytes": 17978,
+      "format": "WebAssembly version 1",
+      "sha256": "1a83dbfe0f164f6a04ae1c011a60ea10f635dc52a95a0b44534ba77a9d8a6170"
+    },
+    {
+      "name": "src_gl_drawing.o",
+      "bytes": 33088,
+      "format": "WebAssembly version 1",
+      "sha256": "9de1dcc7c259ff7add975b6d2073c013c11c3aaaf4ee2acb4fb4d1b687d5b2a1"
+    },
+    {
+      "name": "src_gl_enable.o",
+      "bytes": 12676,
+      "format": "WebAssembly version 1",
+      "sha256": "a01fbbfb9c4d1c9ad841baa21b6417f7de9a66cc94ffb1ea8b3a219027148044"
+    },
+    {
+      "name": "src_gl_envvars.o",
+      "bytes": 1052,
+      "format": "WebAssembly version 1",
+      "sha256": "2301e848682ef8ad23d2fd08a707501354d02799ba4f4101eb8f6b570d71ea95"
+    },
+    {
+      "name": "src_gl_eval.o",
+      "bytes": 14563,
+      "format": "WebAssembly version 1",
+      "sha256": "222393ce7b4044bb81ae06689f530eaf56bf63496f013e1b0ff5bdbfb37a9ba0"
+    },
+    {
+      "name": "src_gl_face.o",
+      "bytes": 2848,
+      "format": "WebAssembly version 1",
+      "sha256": "c21572e4120720ccdd43d6dd762c9671a849df8734975806d96383690219b16e"
+    },
+    {
+      "name": "src_gl_fog.o",
+      "bytes": 3370,
+      "format": "WebAssembly version 1",
+      "sha256": "1790ec3136c41100f7690eb7b76f90b2311ac6b431216ad06c2397910968d759"
+    },
+    {
+      "name": "src_gl_fpe.o",
+      "bytes": 58117,
+      "format": "WebAssembly version 1",
+      "sha256": "7f1b25554fbd0110055f8b3c9c8ce75bb154a73b856d8bb9b58bf24edfe70f46"
+    },
+    {
+      "name": "src_gl_fpe_cache.o",
+      "bytes": 7493,
+      "format": "WebAssembly version 1",
+      "sha256": "afdf0df6b21a4ed319c3884e1fcb1082e62840e8110e57a13ab73c78e4269bce"
+    },
+    {
+      "name": "src_gl_fpe_shader.o",
+      "bytes": 74274,
+      "format": "WebAssembly version 1",
+      "sha256": "2985e88dda4a511ee60b81eb44e85576b8835b4d43ce560e05906371242489f0"
+    },
+    {
+      "name": "src_gl_framebuffers.o",
+      "bytes": 58002,
+      "format": "WebAssembly version 1",
+      "sha256": "4886c43795e3073d3b0da2fd8c230dd2a9f12ce4e682610169e7225ce22a89f7"
+    },
+    {
+      "name": "src_gl_gl_lookup.o",
+      "bytes": 207257,
+      "format": "WebAssembly version 1",
+      "sha256": "10f2ff407ec0da01044843119948571b48bf60054027e4a1015fd5d12ed12c2d"
+    },
+    {
+      "name": "src_gl_getter.o",
+      "bytes": 31545,
+      "format": "WebAssembly version 1",
+      "sha256": "742277ae9e4a6d26917fbd1a682f3c93b3fc7d749e7085507e000961cc20cda6"
+    },
+    {
+      "name": "src_gl_gl4es.o",
+      "bytes": 32804,
+      "format": "WebAssembly version 1",
+      "sha256": "b87af12f25fbd9edb2a78b34cd4273ef9c3e86d22b7dde2a411a1fb7fa80e00a"
+    },
+    {
+      "name": "src_gl_glstate.o",
+      "bytes": 22573,
+      "format": "WebAssembly version 1",
+      "sha256": "09f0abf43777bdcfadada06689946799c9172598a6dd48c689a81894ee4b6ff7"
+    },
+    {
+      "name": "src_gl_hint.o",
+      "bytes": 2738,
+      "format": "WebAssembly version 1",
+      "sha256": "7db864675e64e964e04110269e35f6e787ae8679beae6626af5b87f52e329fd8"
+    },
+    {
+      "name": "src_gl_init.o",
+      "bytes": 24098,
+      "format": "WebAssembly version 1",
+      "sha256": "a7c58f0559f32e76cce3ca41249dcc0e6bd8255d2d742a63086bf58002ac5fc8"
+    },
+    {
+      "name": "src_gl_light.o",
+      "bytes": 12300,
+      "format": "WebAssembly version 1",
+      "sha256": "e39d1cbc13f9573dc575adca1c6c938e9553a1a62f6fdffc12e6d484c49d6ec3"
+    },
+    {
+      "name": "src_gl_line.o",
+      "bytes": 2990,
+      "format": "WebAssembly version 1",
+      "sha256": "eaada071ec714408fd8550d9ec5f8fd2fd33d9cb9bae532a99b3d657902daef7"
+    },
+    {
+      "name": "src_gl_list.o",
+      "bytes": 30579,
+      "format": "WebAssembly version 1",
+      "sha256": "63eba51128aae3ee236d0d449ab7f73ee51b18696adb7676966bf283bb5768c5"
+    },
+    {
+      "name": "src_gl_listdraw.o",
+      "bytes": 23376,
+      "format": "WebAssembly version 1",
+      "sha256": "d5fe3d60ecef11f68b46cff73ecf5cb55fc0f49b73fdf90c28ab45f13e962ab6"
+    },
+    {
+      "name": "src_gl_listrl.o",
+      "bytes": 8244,
+      "format": "WebAssembly version 1",
+      "sha256": "4b657038967514c54ab9f92691d239cebd46757bdd56747bd12b35104eb7c35a"
+    },
+    {
+      "name": "src_gl_loader.o",
+      "bytes": 670,
+      "format": "WebAssembly version 1",
+      "sha256": "ebd0f3f7661db80550f083d1659d140a35196a2fceaaa3b4f01fe69204be2b92"
+    },
+    {
+      "name": "src_gl_logs.o",
+      "bytes": 764,
+      "format": "WebAssembly version 1",
+      "sha256": "d1b783ead98c70abbbcb529308ebd68bbab644e7eaf55b10e9bbe1b24540ec30"
+    },
+    {
+      "name": "src_gl_matrix.o",
+      "bytes": 15190,
+      "format": "WebAssembly version 1",
+      "sha256": "567d44bb85dd82b05f1f6a27ed99f75bb54e1ecd1a2cdc6e6ee69fa78ec5bd17"
+    },
+    {
+      "name": "src_gl_matvec.o",
+      "bytes": 5368,
+      "format": "WebAssembly version 1",
+      "sha256": "b47f23e75cdfdc230b9cb3714f0c796353d5e5bc59a2374775d90c6838e9ee44"
+    },
+    {
+      "name": "src_gl_oldprogram.o",
+      "bytes": 13008,
+      "format": "WebAssembly version 1",
+      "sha256": "8201fed2cb48b6f2021fd363a226730626c363cbe61b0cd5431b078838c65aaf"
+    },
+    {
+      "name": "src_gl_pixel.o",
+      "bytes": 64581,
+      "format": "WebAssembly version 1",
+      "sha256": "254545469c7e18c627f7c68278fdac1fe8898a392b3f201cc3fd4db446a8601b"
+    },
+    {
+      "name": "src_gl_planes.o",
+      "bytes": 1682,
+      "format": "WebAssembly version 1",
+      "sha256": "5051f4f144e1fe76c1d5adb5785b0fcbe1d87ddfb8378f22ca805806b0d33a4a"
+    },
+    {
+      "name": "src_gl_pointsprite.o",
+      "bytes": 4231,
+      "format": "WebAssembly version 1",
+      "sha256": "cd55b57eca1e19b720a55cafce12d754d785dc7d8c1811863fb6e681f522c088"
+    },
+    {
+      "name": "src_gl_preproc.o",
+      "bytes": 13845,
+      "format": "WebAssembly version 1",
+      "sha256": "d99fed97d4ba867c77b453d9f42cd8c9a6cbf90a5b923a48cd9a9baf256e65ff"
+    },
+    {
+      "name": "src_gl_program.o",
+      "bytes": 36086,
+      "format": "WebAssembly version 1",
+      "sha256": "dff2333119e6afb18c4791c3bfe620b4b6229247dfc393fe689f2b7733b3a344"
+    },
+    {
+      "name": "src_gl_queries.o",
+      "bytes": 7948,
+      "format": "WebAssembly version 1",
+      "sha256": "02fecb26fb30dca23fe1958cc8cd3d9272d0dcab9ee01ef30c96c536a676c690"
+    },
+    {
+      "name": "src_gl_raster.o",
+      "bytes": 19454,
+      "format": "WebAssembly version 1",
+      "sha256": "ac469b4da002438c2109929effea8e643b10c11d336679a7e3774f78548fc876"
+    },
+    {
+      "name": "src_gl_render.o",
+      "bytes": 8166,
+      "format": "WebAssembly version 1",
+      "sha256": "2e2b4ec89c39322b7d498880ad9887cc4c37ed8998920e8087a044f4b48ffef0"
+    },
+    {
+      "name": "src_gl_samplers.o",
+      "bytes": 11023,
+      "format": "WebAssembly version 1",
+      "sha256": "74b190b0b006e717135f33e99629d00fce78083358184a5b09c6b24bd6aabe8f"
+    },
+    {
+      "name": "src_gl_shader.o",
+      "bytes": 15329,
+      "format": "WebAssembly version 1",
+      "sha256": "c0b7b93d1de31a723569060049839e68496668c1816a62f8ce884ca9516650ec"
+    },
+    {
+      "name": "src_gl_shaderconv.o",
+      "bytes": 51615,
+      "format": "WebAssembly version 1",
+      "sha256": "bfe03285c9bc44edd67c8c54d7e727a9cf4f5742b6d50e024521738269660c56"
+    },
+    {
+      "name": "src_gl_shader_hacks.o",
+      "bytes": 21226,
+      "format": "WebAssembly version 1",
+      "sha256": "1bd1f3ce65d0cd12fb2dd1abaf8fd2ee3171d436090f08fd66111af7a3961778"
+    },
+    {
+      "name": "src_gl_stack.o",
+      "bytes": 15798,
+      "format": "WebAssembly version 1",
+      "sha256": "ca14cb849fbae14bd92a39165a343600236e375a4247047555619b44627574a9"
+    },
+    {
+      "name": "src_gl_stencil.o",
+      "bytes": 8669,
+      "format": "WebAssembly version 1",
+      "sha256": "88fc42f880da0247e90c11bd291f88626e0633acbdb24e215ab3995fac20b3b0"
+    },
+    {
+      "name": "src_gl_string_utils.o",
+      "bytes": 3421,
+      "format": "WebAssembly version 1",
+      "sha256": "f2ad1de19878a7cb18c0608b5f54edff1ad57b2271453c23a5143b68b6f14d4a"
+    },
+    {
+      "name": "src_gl_stubs.o",
+      "bytes": 379,
+      "format": "WebAssembly version 1",
+      "sha256": "45d750756812737e2317ca9e893fbee4ad41b18a0a8b6834635ec84be87470a0"
+    },
+    {
+      "name": "src_gl_texenv.o",
+      "bytes": 13187,
+      "format": "WebAssembly version 1",
+      "sha256": "c855f4ae23b5be1f5163a911c4bac12a53a510eff2bb8e7628ba12488d3168c8"
+    },
+    {
+      "name": "src_gl_texgen.o",
+      "bytes": 14351,
+      "format": "WebAssembly version 1",
+      "sha256": "84e09d53ea49429694cca410b785d40526ebe8bf95634e27b269ca6197d18b47"
+    },
+    {
+      "name": "src_gl_texture.o",
+      "bytes": 22619,
+      "format": "WebAssembly version 1",
+      "sha256": "af560c3cf51cec7bc2e5ffac182de562ab46c83b13a28a9e79ccd990754b440e"
+    },
+    {
+      "name": "src_gl_texture_compressed.o",
+      "bytes": 7200,
+      "format": "WebAssembly version 1",
+      "sha256": "9b9a08471b895e1a4f741e73be5f5486b594fe0d7ba684d5509978948f0d0d57"
+    },
+    {
+      "name": "src_gl_texture_params.o",
+      "bytes": 25166,
+      "format": "WebAssembly version 1",
+      "sha256": "24b9e8c37168cf807b08f581adca143a1137c7eed634eda8b851bed3f3d9ee47"
+    },
+    {
+      "name": "src_gl_texture_read.o",
+      "bytes": 9582,
+      "format": "WebAssembly version 1",
+      "sha256": "9656d9e5bb668f79dfa479ecbe9f2d27cbd566e07527d515ec66a7e390b165b0"
+    },
+    {
+      "name": "src_gl_texture_3d.o",
+      "bytes": 663,
+      "format": "WebAssembly version 1",
+      "sha256": "d977387dc48633d7eefac9973126e092fc187af9ae6b75f2954bc3d94f0d6f6b"
+    },
+    {
+      "name": "src_gl_uniform.o",
+      "bytes": 43402,
+      "format": "WebAssembly version 1",
+      "sha256": "3a09a719c1a8ae415d13a2ab939c9208078524682f1c04560ef82238bb764ea5"
+    },
+    {
+      "name": "src_gl_vertexattrib.o",
+      "bytes": 5208,
+      "format": "WebAssembly version 1",
+      "sha256": "8389d682a81c057324bdc8da06f50f965b7bff558bf295ce3329cd45f6f66a18"
+    },
+    {
+      "name": "src_gl_wrap_gl4eswraps.o",
+      "bytes": 33739,
+      "format": "WebAssembly version 1",
+      "sha256": "f6c74f09b85799bf818d078023fe74e32a488cab1e3d2bf6276f8259ecf1d9cd"
+    },
+    {
+      "name": "src_gl_wrap_gles.o",
+      "bytes": 53645,
+      "format": "WebAssembly version 1",
+      "sha256": "e3f38802ab28a909aa75bb19cdea6fa3bce55b01e8601a8786a004a37dfdcc0a"
+    },
+    {
+      "name": "src_gl_wrap_glstub.o",
+      "bytes": 3332,
+      "format": "WebAssembly version 1",
+      "sha256": "633168924190a4f44e854c4bfcf4b66b8dcd15d5fb6943c9b54dbb85df63e26a"
+    },
+    {
+      "name": "src_gl_math_matheval.o",
+      "bytes": 7015,
+      "format": "WebAssembly version 1",
+      "sha256": "fe54802e794195bd9efe62bf2ed12db4c214df6ec5baef1076599bc36843bde2"
+    },
+    {
+      "name": "src_glx_hardext.o",
+      "bytes": 22397,
+      "format": "WebAssembly version 1",
+      "sha256": "8e65a32a3eced9be5a610087d1f5b8dc8fe9bfe54dd3a518e120152fc44f6452"
+    }
+  ]
+}

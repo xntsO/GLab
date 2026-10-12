@@ -1,5 +1,5 @@
 import {labs, starter} from './labs.js';
-import {Compiler, Runner} from './compiler.js?v=5';
+import {Compiler, Runner} from './emscripten-adapter.js?v=6';
 import {snapshot, sameSnapshot, validSnapshot, needsBackup, copySource} from './backup.js?v=5';
 import {OutputMirror} from './output-mirror.js?v=5';
 
@@ -10,7 +10,7 @@ const allLabs = [...labs, custom];
 let current = custom, libraryVisible = false;
 let runner, runToken=0, busy=false, active=false, fontSize=12, saveTimer, toastTimer, errorLines=[];
 let outputWidth=500,outputHeight=500,lastMouse={x:0,y:0},lastCode='',ignoreChange=false;
-let retained=null,replacement=null,outputGeneration=0;
+let retained=null,replacement=null,outputGeneration=0,compiledArtifact=null;
 const storageKey = id => `gllab:draft:v1:${id}`;
 const read = key => {try{return localStorage.getItem(key);}catch{return null;}};
 const write = (key,value) => {try{localStorage.setItem(key,value);return true;}catch{return false;}};
@@ -85,31 +85,33 @@ function selectLab(lab,{initial=false,source=null,language=null}={}){
   $('pageReference').textContent=lab.page?`Adapted from the COMP 461 lab manual · page ${lab.page}`:'Your own C/C++ source';
   $('dirtyDot').hidden=editor.getValue()===lab.code;renderLibrary();$('sidebar').classList.remove('open');
   $('canvasPlaceholder').hidden=false;$('statusText').textContent='Ready to compile';$('statusLed').className='status-led';
-  $('consoleOutput').classList.remove('error');$('consoleOutput').textContent=`${lab.title}\n${lab.description}\n\n${compiler.ready?'Compiler ready. Press Run or Ctrl+Enter.':'Press Run to load the C/C++ compiler (about 20 MB on first use).'}\n`;
+  $('consoleOutput').classList.remove('error');$('consoleOutput').textContent=`${lab.title}\n${lab.description}\n\n${compiler.ready?'Compiler ready. Press Run or Ctrl+Enter.':'Press Run to load the C/C++ compiler (about 25 MB plus libraries on first use).'}\n`;
   $('canvasSize').textContent='500 × 500';outputWidth=500;outputHeight=500;resetCanvas();
   write('gllab:selected',lab.id);if(!initial){history.replaceState(null,'',`#lab=${encodeURIComponent(lab.id)}`);saveDraft();}updateBackupStatus();mirror.update();editor.scrollTo(0,0);
 }
 function updateLanguage(){editor.setOption('mode',$('language').value==='c'?'text/x-csrc':'text/x-c++src');$('fileName').textContent=filename();}
 function appendLog(message){const output=$('consoleOutput');output.textContent+=String(message);if(output.textContent.length>50000)output.textContent=output.textContent.slice(-50000);output.scrollTop=output.scrollHeight;}
 function clearErrors(){for(const line of errorLines)editor.removeLineClass(line,'background','compile-error-line');errorLines=[];}
-function markErrors(message){for(const match of message.matchAll(/playground\.(?:cpp|c):(\d+):\d+: (?:fatal )?error:/g)){const line=Number(match[1])-1;if(line<editor.lineCount()){editor.addLineClass(line,'background','compile-error-line');errorLines.push(line);}}if(errorLines.length)editor.scrollIntoView({line:errorLines[0],ch:0},60);}
-function setBusy(value){busy=value;$('runBtn').disabled=value;$('runBtn').querySelector('span').textContent=value?'Compiling…':'Run program';$('stopBtn').disabled=!value&&!active;$('progressTrack').hidden=!value;}
+function markErrors(message){for(const match of message.matchAll(/(?:playground|main|input)\.(?:cpp|c):(\d+):\d+: (?:fatal )?error:/g)){const line=Number(match[1])-1;if(line<editor.lineCount()){editor.addLineClass(line,'background','compile-error-line');errorLines.push(line);}}if(errorLines.length)editor.scrollIntoView({line:errorLines[0],ch:0},60);}
+function setBusy(value){busy=value;$('editorPane').setAttribute('aria-busy',String(value));$('runBtn').disabled=value;$('runBtn').querySelector('span').textContent=value?'Compiling…':'Run program';$('stopBtn').disabled=!value&&!active;$('progressTrack').hidden=!value;}
 function handleFailure(error,token){if(token!==runToken)return;const message=error.diagnostics||error.message||String(error);$('consoleOutput').classList.add('error');appendLog(`\n${message}\n`);markErrors(message);$('statusText').textContent='Check the console';$('statusLed').className='status-led error';active=false;setBusy(false);mirror.update();window.dispatchEvent(new CustomEvent('gllab:view',{detail:{view:'console'}}));}
 async function run(){
   if(busy)return;
   saveDraft();$('inputPanel').hidden=true;$('consoleOutput').hidden=false;$('inputToggle').setAttribute('aria-expanded','false');const source=editor.getValue();if(!source.trim()){toast('Write some code before running.');return;}
   window.dispatchEvent(new CustomEvent('gllab:view',{detail:{view:'output'}}));
-  stop(false);const token=++runToken;clearErrors();lastCode=source;$('consoleOutput').textContent='';$('consoleOutput').classList.remove('error');setBusy(true);$('statusText').textContent='Preparing compiler';$('progressFill').style.width='8%';
+  stop(false);const token=++runToken;clearErrors();lastCode=source;compiledArtifact=null;$('exportBuildBtn').disabled=true;$('consoleOutput').textContent='';$('consoleOutput').classList.remove('error');setBusy(true);$('statusText').textContent='Preparing compiler';$('progressFill').style.width='8%';
   try{
     await compiler.init(message=>{if(token!==runToken)return;$('statusText').textContent=message;appendLog(message+'\n');$('progressFill').style.width=message.includes('ready')?'65%':message.includes('Linking')?'90%':'35%';});
     if(token!==runToken)return;
-    const result=await compiler.compile(source,{language:$('language').value});if(token!==runToken)return;
+    const args=JSON.parse($('compilerFlags').value||'[]');if(!Array.isArray(args)||args.some(value=>typeof value!=='string'))throw new Error('Compiler options must be a JSON array of strings, for example ["-O2"].');
+    const result=await compiler.compile(source,{language:$('language').value,args});if(token!==runToken)return;
+    compiledArtifact=result.artifact||result.wasm;$('exportBuildBtn').disabled=false;
     if(result.diagnostics)appendLog(result.diagnostics+'\n');appendLog(`Compiled successfully in ${(result.elapsedMs/1000).toFixed(2)} s.\n`);
     resetCanvas();const canvas=$('canvas');
     runner=new Runner(canvas,{
       stdout:text=>{if(token===runToken)appendLog(text);},
       onResize:size=>{if(token!==runToken)return;outputWidth=size.width;outputHeight=size.height;$('canvasSize').textContent=`${size.width} × ${size.height}`;$('canvasMount').style.aspectRatio=`${size.width}/${size.height}`;canvas.style.aspectRatio=`${size.width}/${size.height}`;$('canvasMount').style.setProperty('--canvas-ratio',size.width/size.height);},
-      onFrame:stats=>{if(token!==runToken)return;$('canvasPlaceholder').hidden=true;$('statusLed').className='status-led running';if(!busy)$('statusText').textContent=editor.getValue()===lastCode?'Running':'Edited · run to update';},
+      onFrame:stats=>{if(token!==runToken)return;$('canvasPlaceholder').hidden=true;if(stats?.active===false)return;$('statusLed').className='status-led running';if(!busy)$('statusText').textContent=editor.getValue()===lastCode?'Running':'Edited · run to update';},
       onDiagnostic:message=>{if(token===runToken)appendLog(`Graphics: ${message}\n`);},
       onError:message=>handleFailure(new Error(message),token),
       onTitle:title=>{if(token!==runToken)return;$('windowTitle').textContent=title;$('windowTitle').title=title;canvas.setAttribute('aria-label',`${title}. Click to focus for keyboard and mouse interaction.`);mirror.update();},
@@ -118,7 +120,7 @@ async function run(){
       onExit:code=>{if(token!==runToken)return;appendLog(`\nProgram exited with code ${code}.\n`);$('statusText').textContent=`Exited (${code})`;active=false;setBusy(false);}
     });
     attachCanvasEvents(canvas);active=true;$('statusText').textContent='Starting program';setBusy(false);$('stopBtn').disabled=false;
-    const started=await runner.run(result.wasm,{stdin:$('stdin').value});if(token!==runToken)return;
+    const started=await runner.run(result.artifact||result.wasm,{stdin:$('stdin').value});if(token!==runToken)return;
     $('canvasPlaceholder').hidden=true;active=started.active;
     $('statusText').textContent=active?'Running':`Finished (${started.exitCode??0})`;$('statusLed').className=active?'status-led running':'status-led';
     appendLog(active?'Program started. Click the canvas for keyboard and mouse controls.\n':'Program finished.\n');
@@ -195,3 +197,12 @@ document.addEventListener('touchend',()=>{
 document.addEventListener('touchcancel',()=>{librarySwipe=null;},{passive:true});
 
 $('inputToggle').addEventListener('click',()=>{const open=$('inputPanel').hidden;$('inputPanel').hidden=!open;$('consoleOutput').hidden=open;$('inputToggle').setAttribute('aria-expanded',String(open));if(open)$('stdin').focus();});
+
+$('compilerOptionsBtn').addEventListener('click',()=>$('compilerOptionsDialog').showModal());
+$('closeCompilerOptions').addEventListener('click',()=>$('compilerOptionsDialog').close());
+$('exportBuildBtn').addEventListener('click',()=>{
+  const files=compiledArtifact?.files;
+  if(!files?.length){toast('Compile your program before exporting a build.');return;}
+  for(const file of files)downloadBlob(new Blob([file.bytes]),file.path.split('/').pop());
+  toast('Build downloads requested. Keep the JavaScript and Wasm files together.');
+});

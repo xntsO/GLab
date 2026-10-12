@@ -1,0 +1,11 @@
+# Runtime integration
+
+`../../emscripten-adapter.js` exports the site's existing `Runner(canvas, hooks)` interface. `Runner.run()` now receives `{files, exportName}` from the real compiler, rather than a standalone WASI binary. It loads exactly the emitted Emscripten JavaScript and Wasm into `program-frame.js` inside a disposable iframe.
+
+The iframe uses `sandbox="allow-scripts allow-pointer-lock"` without `allow-same-origin`. Its compiled program cannot read the editor document or the site's local storage. Bridge messages validate the iframe window, its random session token, and the parent's origin. C/C++ programs can use Emscripten's normal browser APIs within the iframe.
+
+Upstream GLUT and GLFW require a DOM canvas and browser event handlers. The iframe keeps that canvas. Its transparent frame stays within the viewport so Chromium does not throttle its animation callbacks as an offscreen cross-origin frame. It forces WebGL's `preserveDrawingBuffer` context option and copies actual rendered pixels with transferable `ImageBitmap` objects onto the site's original visible canvas. The bridge allows one frame in flight and caps copies near 30 frames per second. PNG downloads and the existing popout use the original visible canvas, preserving its last completed frame after a program exits.
+
+The bridge supplies stdin as UTF-8 bytes through Emscripten's `Module.stdin`. `print`, `printErr`, `onExit`, window titles, dimensions, and loop completion use the existing application hooks. Keyboard and mouse events from the editor canvas or popout are converted into DOM events on the runtime canvas. Compiler compatibility libraries can use `Module.gllabEvent(type, value)` and `Module.gllabInput(event)` for GLUT menus and loop lifecycle.
+
+Stop removes the entire runtime iframe and message listener. A subsequent run creates a new sandbox and Emscripten module, while retaining the initialized compiler. A program that enters a synchronous infinite loop can block the browser event thread before it handles Stop; use a GLUT or Emscripten browser main loop for long-running animation. Pthread builds require separate browser isolation settings and are outside this integration's verified configuration.

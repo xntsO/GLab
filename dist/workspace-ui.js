@@ -9,7 +9,7 @@ function updateThemeButton() {
   themeButton.setAttribute('aria-label', label);
   themeButton.title = label;
   themeButton.setAttribute('aria-pressed', String(light));
-  document.querySelector('meta[name="theme-color"]').content = light ? '#eef2f7' : '#10151f';
+  document.querySelector('meta[name="theme-color"]').content = light ? '#ffffff' : '#222731';
 }
 
 themeButton.addEventListener('click', () => {
@@ -70,6 +70,54 @@ for (const id of ['newBtn', 'confirmReplace', 'confirmReset']) {
 document.getElementById('labList').addEventListener('click', event => {
   if (event.target.closest('.lab-button')) selectView('editor');
 });
+
+// On narrower screens the file actions live in a File menu. It is a disclosure of the same buttons.
+const fileMenu = document.getElementById('fileMenu');
+const fileMenuButton = document.getElementById('fileMenuBtn');
+const fileActions = document.getElementById('fileActions');
+const menuMode = window.matchMedia('(max-width: 1180px)');
+
+function setFileMenu(open, { focus = false } = {}) {
+  fileMenu.classList.toggle('open', open);
+  fileMenuButton.setAttribute('aria-expanded', String(open));
+  if (open && focus) fileActions.querySelector('button')?.focus();
+}
+
+fileMenuButton.addEventListener('click', () => {
+  setFileMenu(!fileMenu.classList.contains('open'), { focus: true });
+});
+// Capture phase: close first so dialogs opened by an action return focus to the visible File button.
+fileActions.addEventListener('click', event => {
+  if (!menuMode.matches || !event.target.closest('button')) return;
+  setFileMenu(false);
+  fileMenuButton.focus();
+}, true);
+fileActions.addEventListener('keydown', event => {
+  if (!menuMode.matches || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+  const items = Array.from(fileActions.querySelectorAll('button'));
+  const index = items.indexOf(document.activeElement);
+  const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: items.length - 1 }[event.key];
+  event.preventDefault();
+  items[(next + items.length) % items.length].focus();
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && fileMenu.classList.contains('open')) {
+    setFileMenu(false);
+    fileMenuButton.focus();
+  }
+});
+document.addEventListener('pointerdown', event => {
+  if (fileMenu.classList.contains('open') && !fileMenu.contains(event.target)) setFileMenu(false);
+});
+fileMenu.addEventListener('focusout', event => {
+  if (menuMode.matches && event.relatedTarget && !fileMenu.contains(event.relatedTarget)) setFileMenu(false);
+});
+menuMode.addEventListener('change', () => setFileMenu(false));
+
+// Show the shortcut that matches the visitor's keyboard.
+if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+  document.getElementById('runShortcut').textContent = '⌘ ↵';
+}
 
 // The hidden library can resize the editor independently of the browser viewport.
 const observer = new ResizeObserver(refreshEditor);

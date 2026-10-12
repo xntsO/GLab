@@ -22,7 +22,7 @@ export class OutputMirror {
   open() {
     if (this.popup && !this.popup.closed) {this.popup.focus(); this.update(); return;}
     this.session = crypto.randomUUID(); this.ready = false;
-    const url = new URL('./output.html?v=5', import.meta.url); url.hash = new URLSearchParams({session: this.session});
+    const url = new URL('./output.html?v=8', import.meta.url); url.hash = new URLSearchParams({session: this.session});
     this.popup = window.open(url.href, '_blank');
     if (!this.popup) this.blocked();
   }

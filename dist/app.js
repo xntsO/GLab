@@ -1,14 +1,14 @@
 import {labs, starter} from './labs.js';
 import {Compiler, Runner} from './emscripten-adapter.js?v=6';
 import {snapshot, sameSnapshot, validSnapshot, needsBackup, copySource} from './backup.js?v=5';
-import {OutputMirror} from './output-mirror.js?v=5';
+import {OutputMirror} from './output-mirror.js?v=8';
 
 const $ = id => document.getElementById(id);
 const compiler = new Compiler();
 const custom = {id:'custom',title:'My program',group:'Your workspace',description:'A blank canvas for your own C or C++ ideas.',page:null,code:starter,exercise:'Write your own C or C++ program, or open an existing source file.',notes:['A single source file is compiled with the included C/C++ standard library and graphics headers.']};
 const allLabs = [...labs, custom];
 let current = custom, libraryVisible = false;
-let runner, runToken=0, busy=false, active=false, fontSize=12, saveTimer, toastTimer, errorLines=[];
+let runner, runToken=0, busy=false, active=false, saveTimer, toastTimer, errorLines=[];
 let outputWidth=500,outputHeight=500,lastMouse={x:0,y:0},lastCode='',ignoreChange=false;
 let retained=null,replacement=null,outputGeneration=0,compiledArtifact=null;
 const storageKey = id => `gllab:draft:v1:${id}`;
@@ -27,6 +27,15 @@ const editor = CodeMirror.fromTextArea($('source'), {
   extraKeys:{'Ctrl-Enter':()=>run(),'Cmd-Enter':()=>run(),'Ctrl-S':()=>downloadSource(),'Cmd-S':()=>downloadSource(),'Ctrl-/':'toggleComment','Cmd-/':'toggleComment','Tab':cm=>cm.replaceSelection('    ')}
 });
 editor.getInputField().setAttribute('aria-label','C or C++ source code');
+// Reading preferences: code size and line wrapping persist per browser. Phones wrap by default.
+let fontSize=Math.max(11,Math.min(22,Number(read('gllab:fontSize'))||14));
+const storedWrap=read('gllab:wrap');
+function setWrap(on){editor.setOption('lineWrapping',on);$('wrapBtn').setAttribute('aria-pressed',String(on));}
+setWrap(storedWrap===null?matchMedia('(max-width: 760px)').matches:storedWrap==='true');
+editor.getWrapperElement().style.fontSize=`${fontSize}px`;
+// Wrapped continuation lines hang at the line's own indentation instead of column 0.
+editor.on('renderLine',(cm,line,element)=>{const indent=CodeMirror.countColumn(/^\s*/.exec(line.text)[0],null,cm.getOption('tabSize'))*cm.defaultCharWidth();element.style.textIndent=`-${indent}px`;element.style.paddingLeft=`${4+indent}px`;});
+editor.refresh();
 editor.on('cursorActivity',()=>{const p=editor.getCursor();$('cursorPosition').textContent=`Ln ${p.line+1}, Col ${p.ch+1}`;});
 editor.on('change',()=>{
   if(ignoreChange)return;
@@ -37,7 +46,29 @@ editor.on('change',()=>{
   updateBackupStatus();
   clearErrors();
 });
-function saveDraft(){clearTimeout(saveTimer);const saved=write(storageKey(current.id),JSON.stringify({...sourceSnapshot(),retained}));$('savedState').textContent=saved?'Draft saved on this device':'Storage unavailable · download or copy your code';updateBackupStatus();}
+function saveDraft(){clearTimeout(saveTimer);const saved=write(storageKey(current.id),JSON.stringify({...sourceSnapshot(),retained}));$('savedState').textContent=saved?'Draft saved on this device':'Storage unavailable · download or copy your code';$('savedState').dataset.ok=String(saved);updateBackupStatus();}
+// Build progress follows the compiler's real status messages: load, graphics libraries, compile, start.
+const buildSteps=['load','libs','compile','start'],stepRange=[[4,30],[30,60],[60,92],[92,100]];
+let stepReached=-1,libsUsed=false;
+function stepItem(name){return $('buildSteps').querySelector(`[data-step="${name}"]`);}
+function resetBuild(phase='idle'){stepReached=-1;libsUsed=false;$('buildSteps').dataset.phase=phase;for(const name of buildSteps){const item=stepItem(name);item.dataset.state='';item.removeAttribute('aria-current');}}
+function advanceBuild(name,fraction=0){
+  const index=buildSteps.indexOf(name);if(index<stepReached)return;
+  if(name==='libs')libsUsed=true;
+  buildSteps.forEach((step,i)=>{const item=stepItem(step);if(i<index)item.dataset.state=step==='libs'&&!libsUsed?'skip':'done';if(i===index)item.dataset.state='active';if(i===index)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current');});
+  stepReached=index;const [from,to]=stepRange[index];$('progressFill').style.width=`${from+(to-from)*Math.max(0,Math.min(1,fraction))}%`;
+}
+function finishBuild(phase){
+  $('buildSteps').dataset.phase=phase;
+  buildSteps.forEach((step,i)=>{const item=stepItem(step);item.removeAttribute('aria-current');if(phase==='error'){if(i===stepReached)item.dataset.state='error';}else item.dataset.state=step==='libs'&&!libsUsed?'skip':'done';});
+}
+function reportProgress(message){
+  const text=String(message),count=text.match(/(\d+)\s*\/\s*(\d+)/);
+  if(/GL4ES|graphics librar/i.test(text))advanceBuild('libs',count?count[1]/count[2]:.1);
+  else if(/^Compiling/i.test(text))advanceBuild('compile',.25);
+  else if(/initialized|ready/i.test(text))advanceBuild('load',.95);
+  else advanceBuild('load',.3);
+}
 function toast(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,3000);}
 function filename(){return current.id==='custom'?`my-program.${$('language').value==='c'?'c':'cpp'}`:`lab-${current.id.toLowerCase()}.${$('language').value==='c'?'c':'cpp'}`;}
 function renderLibrary(){
@@ -90,22 +121,33 @@ function selectLab(lab,{initial=false,source=null,language=null}={}){
   write('gllab:selected',lab.id);if(!initial){history.replaceState(null,'',`#lab=${encodeURIComponent(lab.id)}`);saveDraft();}updateBackupStatus();mirror.update();editor.scrollTo(0,0);
 }
 function updateLanguage(){editor.setOption('mode',$('language').value==='c'?'text/x-csrc':'text/x-c++src');$('fileName').textContent=filename();}
-function appendLog(message){const output=$('consoleOutput');output.textContent+=String(message);if(output.textContent.length>50000)output.textContent=output.textContent.slice(-50000);output.scrollTop=output.scrollHeight;}
+function appendLog(message){const output=$('consoleOutput');output.textContent+=String(message).replace(/\x1b\[[0-9;]*m/g,'');if(output.textContent.length>50000)output.textContent=output.textContent.slice(-50000);output.scrollTop=output.scrollHeight;}
 function clearErrors(){for(const line of errorLines)editor.removeLineClass(line,'background','compile-error-line');errorLines=[];}
 function markErrors(message){for(const match of message.matchAll(/(?:playground|main|input)\.(?:cpp|c):(\d+):\d+: (?:fatal )?error:/g)){const line=Number(match[1])-1;if(line<editor.lineCount()){editor.addLineClass(line,'background','compile-error-line');errorLines.push(line);}}if(errorLines.length)editor.scrollIntoView({line:errorLines[0],ch:0},60);}
 function setBusy(value){busy=value;$('editorPane').setAttribute('aria-busy',String(value));$('runBtn').disabled=value;$('runBtn').querySelector('span').textContent=value?'Compiling…':'Run program';$('stopBtn').disabled=!value&&!active;$('progressTrack').hidden=!value;}
-function handleFailure(error,token){if(token!==runToken)return;const message=error.diagnostics||error.message||String(error);$('consoleOutput').classList.add('error');appendLog(`\n${message}\n`);markErrors(message);$('statusText').textContent='Check the console';$('statusLed').className='status-led error';active=false;setBusy(false);mirror.update();window.dispatchEvent(new CustomEvent('gllab:view',{detail:{view:'console'}}));}
+function handleFailure(error,token){if(token!==runToken)return;const message=error.diagnostics||error.message||String(error);$('consoleOutput').classList.add('error');appendLog(`\n${message}\n`);markErrors(message);$('statusText').textContent=error.diagnostics?'Compile failed. Check the console':'Check the console';$('statusLed').className='status-led error';if(stepReached<0)advanceBuild('start');finishBuild('error');active=false;setBusy(false);mirror.update();window.dispatchEvent(new CustomEvent('gllab:view',{detail:{view:'console'}}));}
 async function run(){
   if(busy)return;
   saveDraft();$('inputPanel').hidden=true;$('consoleOutput').hidden=false;$('inputToggle').setAttribute('aria-expanded','false');const source=editor.getValue();if(!source.trim()){toast('Write some code before running.');return;}
+  let args;
+  try {
+    args=JSON.parse($('compilerFlags').value||'[]');
+    if(!Array.isArray(args)||args.some(value=>typeof value!=='string'))throw new Error('Expected an array of strings.');
+  } catch {
+    const message='Build options must be a JSON array of strings, for example ["-O2"].';
+    $('compilerFlags').setCustomValidity(message);
+    $('compilerFlags').setAttribute('aria-invalid','true');
+    $('compilerOptionsDialog').showModal();
+    $('compilerFlags').focus();$('compilerFlags').reportValidity();toast(message);
+    return;
+  }
   window.dispatchEvent(new CustomEvent('gllab:view',{detail:{view:'output'}}));
-  stop(false);const token=++runToken;clearErrors();lastCode=source;compiledArtifact=null;$('exportBuildBtn').disabled=true;$('consoleOutput').textContent='';$('consoleOutput').classList.remove('error');setBusy(true);$('statusText').textContent='Preparing compiler';$('progressFill').style.width='8%';
+  stop(false);const token=++runToken;clearErrors();lastCode=source;compiledArtifact=null;$('exportBuildBtn').disabled=true;$('consoleOutput').textContent='';$('consoleOutput').classList.remove('error');setBusy(true);$('statusText').textContent='Preparing compiler';resetBuild('busy');advanceBuild('load');
   try{
-    await compiler.init(message=>{if(token!==runToken)return;$('statusText').textContent=message;appendLog(message+'\n');$('progressFill').style.width=message.includes('ready')?'65%':message.includes('Linking')?'90%':'35%';});
+    await compiler.init(message=>{if(token!==runToken)return;$('statusText').textContent=message;appendLog(message+'\n');reportProgress(message);});
     if(token!==runToken)return;
-    const args=JSON.parse($('compilerFlags').value||'[]');if(!Array.isArray(args)||args.some(value=>typeof value!=='string'))throw new Error('Compiler options must be a JSON array of strings, for example ["-O2"].');
     const result=await compiler.compile(source,{language:$('language').value,args});if(token!==runToken)return;
-    compiledArtifact=result.artifact||result.wasm;$('exportBuildBtn').disabled=false;
+    compiledArtifact=result.artifact||result.wasm;$('exportBuildBtn').disabled=false;advanceBuild('start',.5);
     if(result.diagnostics)appendLog(result.diagnostics+'\n');appendLog(`Compiled successfully in ${(result.elapsedMs/1000).toFixed(2)} s.\n`);
     resetCanvas();const canvas=$('canvas');
     runner=new Runner(canvas,{
@@ -121,12 +163,12 @@ async function run(){
     });
     attachCanvasEvents(canvas);active=true;$('statusText').textContent='Starting program';setBusy(false);$('stopBtn').disabled=false;
     const started=await runner.run(result.artifact||result.wasm,{stdin:$('stdin').value});if(token!==runToken)return;
-    $('canvasPlaceholder').hidden=true;active=started.active;
+    $('canvasPlaceholder').hidden=true;active=started.active;finishBuild(active?'running':'done');
     $('statusText').textContent=active?'Running':`Finished (${started.exitCode??0})`;$('statusLed').className=active?'status-led running':'status-led';
     appendLog(active?'Program started. Click the canvas for keyboard and mouse controls.\n':'Program finished.\n');
   }catch(error){handleFailure(error,token);}finally{if(token===runToken)setBusy(false);}
 }
-function stop(log=true){runToken++;if(busy)compiler.stop();runner?.stop();runner=null;active=false;setBusy(false);$('canvasMenu').hidden=true;$('statusLed').className='status-led';if(log){$('statusText').textContent='Stopped';appendLog('\nStopped. Download or copy important code to keep it.\n');}mirror.update();}
+function stop(log=true){runToken++;if(busy)compiler.stop();runner?.stop();runner=null;active=false;setBusy(false);resetBuild();$('canvasMenu').hidden=true;$('statusLed').className='status-led';if(log){$('statusText').textContent='Stopped';appendLog('\nStopped. Download or copy important code to keep it.\n');}mirror.update();}
 function resetCanvas(){outputGeneration++;$('windowTitle').textContent='Graphics output';$('windowTitle').removeAttribute('title');const old=$('canvas');const canvas=document.createElement('canvas');canvas.id='canvas';canvas.width=500;canvas.height=500;canvas.tabIndex=0;canvas.setAttribute('aria-label','OpenGL graphics output');old.replaceWith(canvas);outputWidth=500;outputHeight=500;$('canvasSize').textContent='500 × 500';$('canvasMount').style.aspectRatio='1';$('canvasMount').style.setProperty('--canvas-ratio',1);mirror.update();}
 function attachCanvasEvents(canvas){
   const point=event=>{const rect=canvas.getBoundingClientRect();lastMouse={x:Math.floor((event.clientX-rect.left)*outputWidth/rect.width),y:Math.floor((event.clientY-rect.top)*outputHeight/rect.height)};return lastMouse;};
@@ -158,7 +200,8 @@ $('resetDownloadBtn').addEventListener('click',downloadSource);$('resetCopyBtn')
 $('replaceDownloadBtn').addEventListener('click',()=>{if(replacement)downloadTarget(replacement);});$('replaceCopyBtn').addEventListener('click',()=>{if(replacement)copyTarget(replacement);});$('cancelReplace').addEventListener('click',()=>finishReplacement(false));$('confirmReplace').addEventListener('click',()=>finishReplacement(true));$('replaceDialog').addEventListener('cancel',e=>{e.preventDefault();finishReplacement(false);});
 for(const id of ['helpBtn','shortcutsBtn'])$(id).addEventListener('click',()=>$('guideDialog').showModal());$('closeGuide').addEventListener('click',()=>$('guideDialog').close());
 for(const id of ['guideDialog','resetDialog'])$(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$(id).close();}});
-$('fontDown').addEventListener('click',()=>changeFont(-1));$('fontUp').addEventListener('click',()=>changeFont(1));function changeFont(delta){fontSize=Math.max(10,Math.min(20,fontSize+delta));editor.getWrapperElement().style.fontSize=`${fontSize}px`;editor.refresh();}
+$('fontDown').addEventListener('click',()=>changeFont(-1));$('fontUp').addEventListener('click',()=>changeFont(1));function changeFont(delta){fontSize=Math.max(11,Math.min(22,fontSize+delta));editor.getWrapperElement().style.fontSize=`${fontSize}px`;write('gllab:fontSize',String(fontSize));editor.refresh();toast(`Code size ${fontSize} px`);}
+$('wrapBtn').addEventListener('click',()=>{const on=!editor.getOption('lineWrapping');setWrap(on);write('gllab:wrap',String(on));editor.refresh();toast(on?'Long lines wrap.':'Long lines scroll sideways.');});
 $('fullscreenBtn').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('canvasSurround').requestFullscreen();}catch{toast('Fullscreen is unavailable in this browser.');}});
 $('snapshotBtn').addEventListener('click',async()=>{if(!runner){toast('Run a graphics program before saving an image.');return;}try{const blob=await runner.snapshot();downloadBlob(blob,filename().replace(/\.(cpp|c)$/,'.png'));toast('Graphics image downloaded.');}catch(error){toast(error.message);}});
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();if(!busy)run();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();downloadSource();}if(e.key==='Escape'){$('canvasMenu').hidden=true;$('sidebar').classList.remove('open');}});
@@ -196,6 +239,7 @@ document.addEventListener('touchend',()=>{
 },{passive:true});
 document.addEventListener('touchcancel',()=>{librarySwipe=null;},{passive:true});
 
+$('stdin').addEventListener('input',()=>{$('inputState').hidden=!$('stdin').value.trim();});
 $('inputToggle').addEventListener('click',()=>{const open=$('inputPanel').hidden;$('inputPanel').hidden=!open;$('consoleOutput').hidden=open;$('inputToggle').setAttribute('aria-expanded',String(open));if(open)$('stdin').focus();});
 
 $('compilerOptionsBtn').addEventListener('click',()=>$('compilerOptionsDialog').showModal());
@@ -206,3 +250,5 @@ $('exportBuildBtn').addEventListener('click',()=>{
   for(const file of files)downloadBlob(new Blob([file.bytes]),file.path.split('/').pop());
   toast('Build downloads requested. Keep the JavaScript and Wasm files together.');
 });
+
+$('compilerFlags').addEventListener('input',()=>{$('compilerFlags').setCustomValidity('');$('compilerFlags').removeAttribute('aria-invalid');});

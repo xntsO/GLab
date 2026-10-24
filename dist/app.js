@@ -30,11 +30,30 @@ editor.getInputField().setAttribute('aria-label','C or C++ source code');
 // Reading preferences: code size and line wrapping persist per browser. Phones wrap by default.
 let fontSize=Math.max(11,Math.min(22,Number(read('gllab:fontSize'))||14));
 const storedWrap=read('gllab:wrap');
-function setWrap(on){editor.setOption('lineWrapping',on);$('wrapBtn').setAttribute('aria-pressed',String(on));}
+let preferredWrap=false;
+function updateLineWrapping(){
+  const width=$('editorHost').clientWidth;
+  if(!width)return;
+  // Narrow panes scroll long lines instead of squeezing code into a vertical strip.
+  const on=preferredWrap&&width>=360;
+  if(editor.getOption('lineWrapping')!==on)editor.setOption('lineWrapping',on);
+  $('wrapBtn').setAttribute('aria-pressed',String(on));
+  $('wrapBtn').title=width<360?'Long lines scroll in narrow panes. Widen the editor to wrap lines.':'Wrap long lines';
+}
+function setWrap(on){preferredWrap=on;updateLineWrapping();}
+new ResizeObserver(updateLineWrapping).observe($('editorHost'));
 setWrap(storedWrap===null?matchMedia('(max-width: 760px)').matches:storedWrap==='true');
 editor.getWrapperElement().style.fontSize=`${fontSize}px`;
 // Wrapped continuation lines hang at the line's own indentation instead of column 0.
-editor.on('renderLine',(cm,line,element)=>{const indent=CodeMirror.countColumn(/^\s*/.exec(line.text)[0],null,cm.getOption('tabSize'))*cm.defaultCharWidth();element.style.textIndent=`-${indent}px`;element.style.paddingLeft=`${4+indent}px`;});
+editor.on('renderLine',(cm,line,element)=>{
+  if(!cm.getOption('lineWrapping'))return;
+  const fullIndent=CodeMirror.countColumn(/^\s*/.exec(line.text)[0],null,cm.getOption('tabSize'))*cm.defaultCharWidth();
+  // Keep continuation indentation proportional to the current pane, leaving room for words.
+  const contentWidth=Math.max(0,cm.getScrollInfo().clientWidth-cm.getGutterElement().offsetWidth-8);
+  const indent=Math.min(fullIndent,80,contentWidth*.2);
+  element.style.textIndent=`-${indent}px`;
+  element.style.paddingLeft=`${4+indent}px`;
+});
 editor.refresh();
 editor.on('cursorActivity',()=>{const p=editor.getCursor();$('cursorPosition').textContent=`Ln ${p.line+1}, Col ${p.ch+1}`;});
 editor.on('change',()=>{
@@ -201,7 +220,7 @@ $('replaceDownloadBtn').addEventListener('click',()=>{if(replacement)downloadTar
 for(const id of ['helpBtn','shortcutsBtn'])$(id).addEventListener('click',()=>$('guideDialog').showModal());$('closeGuide').addEventListener('click',()=>$('guideDialog').close());
 for(const id of ['guideDialog','resetDialog'])$(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$(id).close();}});
 $('fontDown').addEventListener('click',()=>changeFont(-1));$('fontUp').addEventListener('click',()=>changeFont(1));function changeFont(delta){fontSize=Math.max(11,Math.min(22,fontSize+delta));editor.getWrapperElement().style.fontSize=`${fontSize}px`;write('gllab:fontSize',String(fontSize));editor.refresh();toast(`Code size ${fontSize} px`);}
-$('wrapBtn').addEventListener('click',()=>{const on=!editor.getOption('lineWrapping');setWrap(on);write('gllab:wrap',String(on));editor.refresh();toast(on?'Long lines wrap.':'Long lines scroll sideways.');});
+$('wrapBtn').addEventListener('click',()=>{const on=!preferredWrap;setWrap(on);write('gllab:wrap',String(on));editor.refresh();toast(on?($('editorHost').clientWidth<360?'Wrap enabled for wider panes. Narrow panes scroll sideways.':'Long lines wrap.'):'Long lines scroll sideways.');});
 $('fullscreenBtn').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('canvasSurround').requestFullscreen();}catch{toast('Fullscreen is unavailable in this browser.');}});
 $('snapshotBtn').addEventListener('click',async()=>{if(!runner){toast('Run a graphics program before saving an image.');return;}try{const blob=await runner.snapshot();downloadBlob(blob,filename().replace(/\.(cpp|c)$/,'.png'));toast('Graphics image downloaded.');}catch(error){toast(error.message);}});
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();if(!busy)run();}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();downloadSource();}if(e.key==='Escape'){$('canvasMenu').hidden=true;$('sidebar').classList.remove('open');}});

@@ -164,7 +164,7 @@ kbd{font:inherit}
 .input-toggle{border:1px solid var(--line);gap:6px}
 .input-toggle[aria-expanded=true]{background:var(--selection);border-color:var(--accent);color:var(--ink)}
 .input-state>span:first-child{display:block;width:7px;height:7px;border-radius:50%;background:var(--accent)}
-#consoleOutput{flex:1;min-height:0;margin:0;padding:12px 16px;overflow:auto;font:13px/1.65 var(--font-code);color:var(--muted);white-space:pre-wrap;word-break:break-word}
+#consoleOutput{flex:1;min-height:0;margin:0;padding:12px 16px;overflow:auto;font:13px/1.65 var(--font-code);color:var(--muted);white-space:pre;word-break:normal;overflow-wrap:normal}
 #consoleOutput.error{color:var(--error)}
 #inputPanel{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:12px 16px}
 #inputPanel label{font-size:13px;color:var(--muted)}
@@ -174,7 +174,7 @@ kbd{font:inherit}
 .output-pane{grid-area:output;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--canvas-bg)}
 .output-heading{padding:0 8px 0 16px}
 .output-title{min-width:0}
-.output-title h2{margin:0;font-size:13px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;white-space:pre-wrap}
+.output-title h2{margin:0;font-size:13px;font-weight:600;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;overflow-wrap:normal}
 .output-tools{display:flex;gap:2px;flex:none}
 .canvas-surround{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;container-type:size;background-color:var(--canvas-bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px;background-position:center}
 .canvas-surround #canvasMount{position:relative;display:flex;align-items:center;justify-content:center;width:min(100cqw,calc(100cqh * var(--canvas-ratio,1)));max-width:100%;max-height:100%;aspect-ratio:1;box-shadow:0 0 0 1px var(--line),0 12px 40px #0005}
@@ -419,3 +419,24 @@ dialog::backdrop{background:#0b0d12b8;backdrop-filter:blur(2px)}
 }
 @media(min-width:761px) and (pointer:coarse){.workbench{--divider-size:16px}}
 @media(max-width:760px){.layout-toolbar,.panel-resizer{display:none}}
+
+/* Panel content responds to its own width, independently of the browser width. */
+.editor-pane,.output-pane,.console{container-type:inline-size;min-width:0}
+.output-title{flex:1;min-width:0}
+.console-heading h2{white-space:nowrap;flex-shrink:0}
+.console-heading,.editor-tools,.output-tools{flex-wrap:wrap}
+.canvas-footer{align-items:center;min-width:0}
+#canvasSize{flex:none;white-space:nowrap}
+#interactionHint{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@container (max-width:360px){
+  .pane-heading{flex-wrap:wrap;justify-content:flex-start;gap:0}
+  .file-tab{flex:1 0 100%;max-width:100%;min-height:38px;padding:0 12px}
+  .editor-tools{flex:1 0 100%;padding:2px 4px;justify-content:flex-end}
+  .output-title{flex:1 0 100%;min-height:36px;display:flex;align-items:center}
+  .output-title h2{width:100%}
+  .output-tools{margin-left:auto;padding-bottom:4px}
+  .console-heading{gap:4px;padding:4px 8px}
+  .console-heading h2{flex-basis:100%;margin:0}
+  .canvas-footer{padding:7px 10px}
+  #interactionHint{display:none}
+}

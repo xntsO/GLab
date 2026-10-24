@@ -392,3 +392,30 @@ dialog::backdrop{background:#0b0d12b8;backdrop-filter:blur(2px)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
+
+/* Persistent, adjustable desktop panels; phones keep their full-pane tabs. */
+.layout-toolbar{display:flex;align-items:center;gap:6px;flex:none;min-height:38px;padding:3px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.layout-label{font-size:12px;color:var(--muted);margin-right:4px}
+.layout-toolbar button[aria-pressed=true]{background:var(--selection);color:var(--ink)}
+#focusCode{margin-left:auto}
+.hide-panel{font-size:20px;min-width:32px}
+.panel-resizer{display:none}
+@media(min-width:761px){
+  .workbench{--editor-width:50%;--console-height:32%;--divider-size:10px;grid-template-columns:minmax(0,var(--editor-width)) var(--divider-size) minmax(0,1fr);grid-template-rows:minmax(0,1fr) var(--divider-size) minmax(0,var(--console-height));grid-template-areas:"editor output-resize output" "console-resize output-resize output" "console output-resize output"}
+  .workbench[data-output-hidden=true]{grid-template-columns:minmax(0,1fr);grid-template-areas:"editor" "console-resize" "console"}
+  .workbench[data-console-hidden=true]{grid-template-rows:minmax(0,1fr);grid-template-areas:"editor output-resize output"}
+  .workbench[data-output-hidden=true][data-console-hidden=true]{grid-template-areas:"editor"}
+  .workbench[data-output-hidden=true] .output-pane,.workbench[data-output-hidden=true] .output-resizer,.workbench[data-console-hidden=true] .console,.workbench[data-console-hidden=true] .console-resizer{display:none}
+  .panel-resizer{display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none;background:var(--surface);z-index:2;outline-offset:-2px}
+  .panel-resizer::after{content:'';border-radius:3px;background:var(--line-strong)}
+  .output-resizer{grid-area:output-resize;cursor:col-resize}
+  .output-resizer::after{width:3px;height:32px}
+  .console-resizer{grid-area:console-resize;cursor:row-resize}
+  .console-resizer::after{width:32px;height:3px}
+  .panel-resizer:hover,.panel-resizer:focus-visible,.panel-resizer.dragging{background:var(--selection)}
+  .panel-resizer:hover::after,.panel-resizer:focus-visible::after,.panel-resizer.dragging::after{background:var(--accent)}
+  body.resizing-panels{user-select:none}
+  body.resizing-panels iframe,body.resizing-panels canvas{pointer-events:none}
+}
+@media(min-width:761px) and (pointer:coarse){.workbench{--divider-size:16px}}
+@media(max-width:760px){.layout-toolbar,.panel-resizer{display:none}}

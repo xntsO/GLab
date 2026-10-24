@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browser Emscripten acceptance</title>
+<html lang="en"><head><meta name="robots" content="noindex, follow"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browser Emscripten acceptance</title>
 <style>body{font:16px system-ui,sans-serif;max-width:1100px;margin:32px auto;padding:0 20px;background:#13181f;color:#eaf0f7}button,input{font:inherit;padding:10px;border:1px solid #657385;border-radius:4px}input{width:min(90%,620px)}button{cursor:pointer;background:#bde2ff;color:#152133}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#202933;padding:16px;font:13px ui-monospace,monospace}label{display:block;margin-bottom:14px}#gallery{display:flex;flex-wrap:wrap;gap:16px}figure{margin:0}figure img{width:128px;image-rendering:pixelated}iframe{max-width:640px}</style></head>
 <body><h1>Browser Emscripten acceptance</h1><p>Each run creates new C and C++ source, invokes the browser compiler, then executes its emitted JavaScript and Wasm. This page does not call the older WASI compiler.</p>
 <label>Compiler adapter module <input id="adapter" value="/emscripten/toolchain/compiler-client.js"></label>

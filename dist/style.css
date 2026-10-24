@@ -61,10 +61,10 @@ kbd{font:inherit}
 .topbar{flex:none;height:var(--topbar-h);display:flex;align-items:center;gap:18px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line);position:relative;z-index:20}
 .brand{display:flex;align-items:center;gap:10px;white-space:nowrap;padding:6px 4px;border-radius:7px}
 .brand-mark{width:23px;height:20px}
-.brand strong{font-size:18px;font-weight:700;letter-spacing:-.2px}
+.brand h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.2px}
 .doc-identity{min-width:0;flex:1;display:flex;flex-direction:column;justify-content:center;padding-left:18px;border-left:1px solid var(--line);height:32px}
 .doc-identity .breadcrumb{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-.doc-identity h1{margin:0;font-size:15px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-identity h2{margin:0;font-size:15px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .doc-identity p{margin:0;font-size:12px;line-height:1.35;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #lessonToggle{min-height:var(--target);padding:6px 12px;font-size:13px}
 #lessonToggle[aria-expanded=true]{background:var(--selection);border-color:var(--accent)}
@@ -294,9 +294,9 @@ dialog::backdrop{background:#0b0d12b8;backdrop-filter:blur(2px)}
   :root{--topbar-h:calc(52px + env(safe-area-inset-top));--target:44px;font-size:15px}
   .topbar{gap:6px;padding:env(safe-area-inset-top) max(8px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left))}
   .brand{padding:12px 10px;min-width:44px;min-height:44px}
-  .brand strong{display:none}
+  .brand h1{margin:0;display:none}
   .doc-identity{padding-left:10px;height:28px}
-  .doc-identity h1{font-size:16px}
+  .doc-identity h2{font-size:16px}
   .doc-identity p{display:none}
   .header-actions{gap:0;padding-left:2px;border:0}
   .guide-label{display:none}
@@ -440,3 +440,7 @@ dialog::backdrop{background:#0b0d12b8;backdrop-filter:blur(2px)}
   .canvas-footer{padding:7px 10px}
   #interactionHint{display:none}
 }
+
+.guide-pages{display:flex;flex-wrap:wrap;gap:12px 20px;margin-bottom:20px}
+.no-script-note{margin:0;padding:12px;background:var(--surface);color:var(--ink)}
+.no-script-note a{text-decoration:underline}

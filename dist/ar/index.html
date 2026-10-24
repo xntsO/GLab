@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><title>مترجم C وC++ أونلاين وتشغيل OpenGL | GL Lab</title><meta content="اكتب وشغّل أكواد C وC++ ورسوم OpenGL في المتصفح مع GL Lab. تعرّف على الإدخال والمخرجات وتغيير أحجام النوافذ وحفظ الكود على جهازك." name="description"/>
+<link href="https://gl-lab.fhas.sa/ar/" rel="canonical"/>
+<meta content="index, follow, max-image-preview:large" name="robots"/>
+<meta content="website" property="og:type"/>
+<meta content="GL Lab" property="og:site_name"/>
+<meta content="مترجم C وC++ أونلاين وتشغيل OpenGL | GL Lab" property="og:title"/>
+<meta content="اكتب وشغّل أكواد C وC++ ورسوم OpenGL في المتصفح مع GL Lab. تعرّف على الإدخال والمخرجات وتغيير أحجام النوافذ وحفظ الكود على جهازك." property="og:description"/>
+<meta content="https://gl-lab.fhas.sa/ar/" property="og:url"/>
+<meta content="ar_SA" property="og:locale"/>
+<meta content="https://gl-lab.fhas.sa/social-preview.png" property="og:image"/>
+<meta content="1200" property="og:image:width"/><meta content="630" property="og:image:height"/>
+<meta content="GL Lab — C, C++ and OpenGL in your browser" property="og:image:alt"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="مترجم C وC++ أونلاين وتشغيل OpenGL | GL Lab" name="twitter:title"/>
+<meta content="اكتب وشغّل أكواد C وC++ ورسوم OpenGL في المتصفح مع GL Lab. تعرّف على الإدخال والمخرجات وتغيير أحجام النوافذ وحفظ الكود على جهازك." name="twitter:description"/>
+<meta content="https://gl-lab.fhas.sa/social-preview.png" name="twitter:image"/>
+<link href="https://gl-lab.fhas.sa/about.html" hreflang="en" rel="alternate"/>
+<link href="https://gl-lab.fhas.sa/ar/" hreflang="ar" rel="alternate"/>
+<link href="https://gl-lab.fhas.sa/about.html" hreflang="x-default" rel="alternate"/>
+<link href="/icon.svg" rel="icon" type="image/svg+xml"/><link href="/guide.css" rel="stylesheet"/></head><body><header><a href="/">GL Lab</a><nav aria-label="التنقل"><a href="/">افتح المحرر</a><a href="/about.html" lang="en">English</a></nav></header><main><p class="kicker">GL LAB · مختبر البرمجة في المتصفح</p><h1>تشغيل <bdi dir="ltr">C</bdi> و<bdi dir="ltr">C++</bdi> وOpenGL أونلاين</h1>
+<p class="intro">GL Lab محرر ومترجم للغتي <bdi dir="ltr">C</bdi> و<bdi dir="ltr">C++</bdi> يعمل داخل المتصفح. اكتب برنامجك وشغّله على جهازك، وشاهد رسائل الطرفية أو رسوم OpenGL المدعومة بجانب الكود.</p>
+<a class="cta" href="/">افتح محرر الأكواد</a>
+<ul class="features"><li><strong>ترجمة فعلية للكود</strong><br/>يدعم <bdi dir="ltr">C11</bdi> و<bdi dir="ltr">C++17</bdi> باستخدام Emscripten داخل متصفحك.</li><li><strong>عرض الرسوم بجانب الكود</strong><br/>يشغّل الأجزاء المدعومة من OpenGL التقليدي وGLUT وGLFW عبر WebGL.</li><li><strong>مساحة عمل قابلة للتعديل</strong><br/>غيّر أحجام نافذتي المخرجات والطرفية أو أخفهما للتركيز على الكود.</li><li><strong>كودك يبقى على جهازك</strong><br/>تُحفظ المسودات في المتصفح، ويمكنك تنزيل الملف للاحتفاظ بنسخة مستقلة.</li></ul>
+<h2>كيف أشغّل أول برنامج <bdi dir="ltr">C++</bdi>؟</h2><ol><li>افتح المختبر واختر <strong><bdi dir="ltr">C++17</bdi></strong>. اكتب الكود أو افتح ملفًا من <strong><bdi dir="ltr">File → Open</bdi></strong>.</li><li>اضغط <strong>Run program</strong> أو اختصار <bdi dir="ltr">Ctrl/⌘ + Enter</bdi>. عند الاستخدام الأول يُنزّل المتصفح نحو 25 ميجابايت من أدوات الترجمة، بالإضافة إلى مكتبات الرسوم المطلوبة.</li><li>ستظهر المخرجات النصية وأخطاء الترجمة في <strong>Console</strong>، وتظهر الرسوم في <strong>Output</strong> إذا كان برنامجك يرسمها.</li></ol>
+<pre dir="ltr"><code>#include &lt;iostream&gt;
+
+int main() {
+    std::cout &lt;&lt; "Hello from GL Lab!" &lt;&lt; std::endl;
+    return 0;
+}</code></pre>
+<h2>تشغيل OpenGL وGLUT وGLFW</h2><p>يستخدم المختبر GL4ES لتحويل استدعاءات OpenGL التقليدية المدعومة إلى WebGL. يحدد المترجم مكتبات التوافق المطلوبة من ترويسات الكود، لتجربة تمارين الرسوم ذات الملف الواحد دون تثبيت مترجم على الكمبيوتر.</p><p>تحتاج الرسوم المتحركة إلى استدعاءات دورية مناسبة للمتصفح. لا يدعم المختبر كل إمكانات OpenGL المكتبية أو النوافذ الأصلية المتعددة أو الحزم المثبتة على نظام التشغيل. راجع <a href="/compatibility.html">دليل التوافق والقيود باللغة الإنجليزية</a> قبل نقل مشروع كبير.</p>
+<h2>الإدخال والمخرجات ومساحة المحرر</h2><p>إذا استخدمت <code>scanf</code> أو <code>cin</code>، افتح <strong>Input</strong> في Console وأدخل القيم قبل التشغيل. تُمرر القيم مرة واحدة لكل تشغيل؛ الطرفية ليست جلسة إدخال تفاعلية أثناء عمل البرنامج.</p><p>أزرار Output وConsole تخفي النوافذ وتظهرها، والفواصل تسمح بتغيير الحجم بالسحب. استخدم Focus code لتوسيع المحرر وReset layout لاستعادة الترتيب الافتراضي. على الجوال، تنقّل بين Editor وOutput وConsole عبر التبويبات.</p>
+<h2>هل يعمل المختبر على الجوال؟</h2><p>يمكن استخدامه في متصفح جوال يدعم JavaScript وWebAssembly وWebGL. الترجمة تستخدم ذاكرة جهازك وقدرته على المعالجة، لذلك قد تتجاوز البرامج الكبيرة حدود متصفح الجوال.</p>
+<h2>كيف أحفظ الكود؟</h2><p>اضغط Download لتنزيل ملف <bdi dir="ltr">C</bdi> أو <bdi dir="ltr">C++</bdi>. المسودات مرتبطة بنفس المتصفح ونطاق الموقع، وقد تُحذف عند مسح بيانات التصفح. المترجم لا يرفع كودك إلى خادم خارجي لترجمته.</p><p class="note">احتفظ بنسخة منزّلة من الأكواد المهمة قبل تغيير الجهاز أو مسح بيانات المتصفح.</p></main><footer><nav><a href="/">افتح المحرر</a><a href="/compatibility.html">التوافق والقيود (English)</a><a href="/about.html" lang="en">English</a></nav></footer></body></html>

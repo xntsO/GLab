@@ -1,4 +1,4 @@
-export {Compiler} from './emscripten-compiler.js';
+export {Compiler} from './emscripten-compiler.js?v=7';
 
 /** Keep the established GL Lab canvas and controls around a real Emscripten module. */
 export class Runner {
@@ -24,8 +24,10 @@ export class Runner {
     // The original visible canvas receives its pixels and retains every UI hook.
     // Chromium throttles requestAnimationFrame in offscreen cross-origin frames.
     // Keep its geometry in the viewport, transparent beneath the application.
-    frame.style.cssText = 'position:fixed;left:0;top:0;width:800px;height:600px;max-width:100vw;max-height:100vh;opacity:0;z-index:-1;border:0;pointer-events:none';
-    const runtimeUrl = new URL('./emscripten/runtime/program-frame.js', import.meta.url).href;
+    // Opacity must stay above 0: Viz skips BeginFrames for fully transparent
+    // frames (ThrottleUndrawnFrames), dropping animation to ~1-20 fps.
+    frame.style.cssText = 'position:fixed;left:0;top:0;width:800px;height:600px;max-width:100vw;max-height:100vh;opacity:0.001;z-index:-1;border:0;pointer-events:none';
+    const runtimeUrl = new URL('./emscripten/runtime/program-frame.js?v=2', import.meta.url).href;
     this.receive = event => {
       if (event.source !== frame.contentWindow || event.data?.token !== this.token) return;
       const data = event.data;
@@ -92,4 +94,33 @@ export class Runner {
     for (const pending of this.pending.values()) pending.reject(new Error('Program stopped.'));
     this.pending.clear();
   }
+}
+
+/** Bind both output canvases to the same input protocol, in program pixels. */
+export function bindCanvasInput(canvas,input,{pointerDown=()=>{},editorShortcuts=false}={}) {
+  let last={x:0,y:0};const keys=new Map(),buttons=new Set();
+  const modifiers=e=>(e.shiftKey?1:0)|(e.ctrlKey?2:0)|(e.altKey?4:0)|(e.metaKey?8:0);
+  const point=e=>{
+    const rect=canvas.getBoundingClientRect(),style=getComputedStyle(canvas);
+    const left=parseFloat(style.borderLeftWidth)+parseFloat(style.paddingLeft),top=parseFloat(style.borderTopWidth)+parseFloat(style.paddingTop);
+    let width=rect.width-left-parseFloat(style.borderRightWidth)-parseFloat(style.paddingRight),height=rect.height-top-parseFloat(style.borderBottomWidth)-parseFloat(style.paddingBottom),x=e.clientX-rect.left-left,y=e.clientY-rect.top-top;
+    if(style.objectFit==='contain'){const scale=Math.min(width/canvas.width,height/canvas.height);x-=(width-canvas.width*scale)/2;y-=(height-canvas.height*scale)/2;width=canvas.width*scale;height=canvas.height*scale;}
+    return last={x:Math.floor(x*canvas.width/width),y:Math.floor(y*canvas.height/height)};
+  };
+  const release=()=>{for(const event of keys.values())input({...event,type:'keyup',...last,modifiers:0,repeat:false});keys.clear();for(const button of buttons)input({type:'mouse',button,state:1,...last,modifiers:0});buttons.clear();};
+  canvas.style.touchAction='none';
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointerdown',e=>{canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);pointerDown();buttons.add(e.button);input({type:'mouse',button:e.button,state:0,...point(e),modifiers:modifiers(e)});e.preventDefault();});
+  canvas.addEventListener('pointerup',e=>{buttons.delete(e.button);input({type:'mouse',button:e.button,state:1,...point(e),modifiers:modifiers(e)});});
+  canvas.addEventListener('pointercancel',release);
+  canvas.addEventListener('pointermove',e=>input({type:e.buttons?'motion':'passive',buttons:e.buttons,...point(e),modifiers:modifiers(e)}));
+  for(const [type,state] of [['pointerenter',1],['pointerleave',0]])canvas.addEventListener(type,e=>input({type:'entry',state,...point(e),modifiers:modifiers(e)}));
+  canvas.addEventListener('wheel',e=>{e.preventDefault();input({type:'wheel',...point(e),deltaX:e.deltaX,deltaY:e.deltaY,deltaMode:e.deltaMode,modifiers:modifiers(e)});},{passive:false});
+  for(const type of ['keydown','keyup'])canvas.addEventListener(type,e=>{
+    if(editorShortcuts&&(e.ctrlKey||e.metaKey)&&(e.key==='Enter'||e.key.toLowerCase()==='s'))return;
+    const event={type,key:e.key,code:e.code,repeat:e.repeat,...last,modifiers:modifiers(e)};
+    if(type==='keydown')keys.set(e.code||e.key,event);else keys.delete(e.code||e.key);
+    input(event);e.preventDefault();
+  });
+  canvas.addEventListener('blur',release);
 }

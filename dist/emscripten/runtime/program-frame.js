@@ -55,18 +55,20 @@ async function capture(time) {
 
 function forwardInput(event) {
   if (typeof module?.gllabInput === 'function' && module.gllabInput(event)) return;
-  const modifiers = {shiftKey: !!(event.modifiers & 1), ctrlKey: !!(event.modifiers & 2), altKey: !!(event.modifiers & 4)};
+  const modifiers = {shiftKey: !!(event.modifiers & 1), ctrlKey: !!(event.modifiers & 2), altKey: !!(event.modifiers & 4), metaKey: !!(event.modifiers & 8)};
   if (['keydown', 'keyup'].includes(event.type)) {
-    const keyCodes = {ArrowLeft:37, ArrowUp:38, ArrowRight:39, ArrowDown:40, Escape:27, Enter:13, Tab:9, Backspace:8, Delete:46, Home:36, End:35, PageUp:33, PageDown:34, Insert:45, ';':186, ':':186, '=':187, '+':187, ',':188, '<':188, '-':189, '_':189, '.':190, '>':190, '/':191, '?':191, '`':192, '~':192, '[':219, '{':219, '\\':220, '|':220, ']':221, '}':221, "'":222, '"':222};
+    const keyCodes = {ArrowLeft:37, ArrowUp:38, ArrowRight:39, ArrowDown:40, Escape:27, Enter:13, Tab:9, Backspace:8, Delete:46, Home:36, End:35, PageUp:33, PageDown:34, Insert:45, Shift:16, Control:17, Alt:18, Meta:91, ';':186, ':':186, '=':187, '+':187, ',':188, '<':188, '-':189, '_':189, '.':190, '>':190, '/':191, '?':191, '`':192, '~':192, '[':219, '{':219, '\\':220, '|':220, ']':221, '}':221, "'":222, '"':222};
     const key = event.key || '';
-    const keyCode = keyCodes[key] || (/^F\d+$/.test(key) ? 111 + Number(key.slice(1)) : key.toUpperCase().charCodeAt(0));
-    canvas.dispatchEvent(new KeyboardEvent(event.type, {key, code: key.length === 1 ? `Key${key.toUpperCase()}` : key, keyCode, which: keyCode, charCode: key.length === 1 ? key.charCodeAt(0) : 0, bubbles: true, cancelable: true, ...modifiers}));
+    const physical = event.code || '';
+    const shifted = ')!@#$%^&*(';
+    const keyCode = (/^Key[A-Z]$/.test(physical) ? physical.charCodeAt(3) : /^Digit[0-9]$/.test(physical) ? physical.charCodeAt(5) : 0) || keyCodes[key] || (shifted.includes(key) && key.length===1 ? 48+shifted.indexOf(key) : 0) || (/^F\d+$/.test(key) ? 111 + Number(key.slice(1)) : key.toUpperCase().charCodeAt(0));
+    canvas.dispatchEvent(new KeyboardEvent(event.type, {key, code: event.code || (key.length === 1 ? `Key${key.toUpperCase()}` : key), repeat:!!event.repeat, keyCode, which: keyCode, charCode: key.length === 1 ? key.charCodeAt(0) : 0, bubbles: true, cancelable: true, ...modifiers}));
     if (event.type === 'keydown' && key.length === 1) canvas.dispatchEvent(new KeyboardEvent('keypress', {key, keyCode:key.charCodeAt(0), which:key.charCodeAt(0), charCode:key.charCodeAt(0), bubbles:true, ...modifiers}));
-  } else if (['mouse', 'motion', 'passive', 'wheel'].includes(event.type)) {
+  } else if (['mouse', 'motion', 'passive', 'wheel', 'entry'].includes(event.type)) {
     const rect = canvas.getBoundingClientRect();
-    const options = {clientX: rect.left + event.x * rect.width / canvas.width, clientY: rect.top + event.y * rect.height / canvas.height, button:event.button || 0, buttons:event.type === 'motion' ? 1 : event.type === 'mouse' && event.state === 0 ? [1,4,2][event.button || 0] : 0, bubbles:true, cancelable:true, ...modifiers};
-    const type = event.type === 'mouse' ? event.state === 0 ? 'mousedown' : 'mouseup' : event.type === 'wheel' ? 'wheel' : 'mousemove';
-    canvas.dispatchEvent(type === 'wheel' ? new WheelEvent(type, {...options, deltaY:event.deltaY || 0}) : new MouseEvent(type, options));
+    const options = {clientX: rect.left + event.x * rect.width / canvas.width, clientY: rect.top + event.y * rect.height / canvas.height, button:event.button || 0, buttons:event.type === 'motion' ? (event.buttons ?? 1) : event.type === 'mouse' && event.state === 0 ? [1,4,2][event.button || 0] : 0, bubbles:true, cancelable:true, ...modifiers};
+    const type = event.type === 'entry' ? event.state ? 'mouseenter' : 'mouseleave' : event.type === 'mouse' ? event.state === 0 ? 'mousedown' : 'mouseup' : event.type === 'wheel' ? 'wheel' : 'mousemove';
+    canvas.dispatchEvent(type === 'wheel' ? new WheelEvent(type, {...options, deltaX:event.deltaX || 0, deltaY:event.deltaY || 0, deltaMode:event.deltaMode || 0}) : new MouseEvent(type, options));
   }
 }
 

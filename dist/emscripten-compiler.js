@@ -1,6 +1,6 @@
 import {createCompiler} from './emscripten/toolchain/compiler-client.js';
 import {installGL4ES, gl4esLinkArguments} from './emscripten/runtime/build-gl4es.js';
-import {installLegacyGL, legacyGLLinkArguments} from './emscripten/toolchain/legacy-gl.js';
+import {installLegacyGL, legacyGLLinkArguments} from './emscripten/toolchain/legacy-gl.js?v=2';
 
 const runtimeArgs = [
   '-sMODULARIZE=1', '-sEXPORT_NAME=GLLabModule', '-sINVOKE_RUN=0',
@@ -56,7 +56,9 @@ export class Compiler {
       signal.throwIfAborted();
       this.graphicsInstalled=true;
     }
-    const flags=['-O0',...args,'-I'+compatibilityDirectory,...(graphics?[...gl4esLinkArguments,...legacyGLLinkArguments]:[]),...runtimeArgs];
+    // em++ must enable catching during both compilation and linking. The pinned
+    // SDK ships the JS exception libraries; C keeps its existing configuration.
+    const flags=['-O0',...(language==='cpp'?['-fexceptions']:[]),...args,'-I'+compatibilityDirectory,...(graphics?[...gl4esLinkArguments,...legacyGLLinkArguments]:[]),...runtimeArgs];
     const result=await this.client.compile({source,language,args:flags,basename:'visitor'});
     const diagnostics=[...result.stdout,...result.stderr].join('\n');
     if(result.exitCode!==0) {

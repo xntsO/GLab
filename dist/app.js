@@ -1,7 +1,7 @@
-import {labs, starter} from './labs.js';
-import {Compiler, Runner} from './emscripten-adapter.js?v=6';
+import {labs, starter} from './labs.js?v=2';
+import {Compiler, Runner, bindCanvasInput} from './emscripten-adapter.js?v=7';
 import {snapshot, sameSnapshot, validSnapshot, needsBackup, copySource} from './backup.js?v=5';
-import {OutputMirror} from './output-mirror.js?v=8';
+import {OutputMirror} from './output-mirror.js?v=9';
 
 const $ = id => document.getElementById(id);
 const compiler = new Compiler();
@@ -189,15 +189,7 @@ async function run(){
 }
 function stop(log=true){runToken++;if(busy)compiler.stop();runner?.stop();runner=null;active=false;setBusy(false);resetBuild();$('canvasMenu').hidden=true;$('statusLed').className='status-led';if(log){$('statusText').textContent='Stopped';appendLog('\nStopped. Download or copy important code to keep it.\n');}mirror.update();}
 function resetCanvas(){outputGeneration++;$('windowTitle').textContent='Graphics output';$('windowTitle').removeAttribute('title');const old=$('canvas');const canvas=document.createElement('canvas');canvas.id='canvas';canvas.width=500;canvas.height=500;canvas.tabIndex=0;canvas.setAttribute('aria-label','OpenGL graphics output');old.replaceWith(canvas);outputWidth=500;outputHeight=500;$('canvasSize').textContent='500 × 500';$('canvasMount').style.aspectRatio='1';$('canvasMount').style.setProperty('--canvas-ratio',1);mirror.update();}
-function attachCanvasEvents(canvas){
-  const point=event=>{const rect=canvas.getBoundingClientRect();lastMouse={x:Math.floor((event.clientX-rect.left)*outputWidth/rect.width),y:Math.floor((event.clientY-rect.top)*outputHeight/rect.height)};return lastMouse;};
-  const modifiers=e=>(e.shiftKey?1:0)|(e.ctrlKey?2:0)|(e.altKey?4:0);
-  canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  canvas.addEventListener('pointerdown',e=>{canvas.focus();canvas.setPointerCapture(e.pointerId);$('canvasMenu').hidden=true;runner?.handleEvent({type:'mouse',button:e.button,state:0,...point(e),modifiers:modifiers(e)});e.preventDefault();});
-  canvas.addEventListener('pointerup',e=>{runner?.handleEvent({type:'mouse',button:e.button,state:1,...point(e),modifiers:modifiers(e)});});
-  canvas.addEventListener('pointermove',e=>runner?.handleEvent({type:e.buttons?'motion':'passive',...point(e),modifiers:modifiers(e)}));
-  for(const type of ['keydown','keyup'])canvas.addEventListener(type,e=>{if(e.ctrlKey||e.metaKey)return;runner?.handleEvent({type,key:e.key,...lastMouse,modifiers:modifiers(e)});if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Tab','Escape'].includes(e.key))e.preventDefault();});
-}
+function attachCanvasEvents(canvas){bindCanvasInput(canvas,event=>{lastMouse={x:event.x,y:event.y};runner?.handleEvent(event);},{pointerDown:()=>{$('canvasMenu').hidden=true;},editorShortcuts:true});}
 function showMenu(menu){const popup=$('canvasMenu');popup.replaceChildren();for(const item of menu.items){const button=document.createElement('button');button.textContent=item.label+(item.sub?' >':'');button.setAttribute('role','menuitem');button.addEventListener('click',()=>{if(item.sub){runner?.handleEvent({type:'menuOpen',menu:item.sub,x:menu.x,y:menu.y});}else{runner?.handleEvent({type:'menu',menu:menu.menu,value:item.value});popup.hidden=true;$('canvas').focus();}});popup.append(button);}popup.setAttribute('role','menu');const canvas=$('canvas').getBoundingClientRect(),surround=$('canvasSurround').getBoundingClientRect();popup.style.left=`${Math.min(surround.width-170,Math.max(5,canvas.left-surround.left+menu.x/outputWidth*canvas.width))}px`;popup.style.top=`${Math.min(surround.height-180,Math.max(5,canvas.top-surround.top+menu.y/outputHeight*canvas.height))}px`;popup.hidden=false;popup.querySelector('button')?.focus();}
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function markRetained(target){const kept=snapshot(target.value.code,target.value.language);if(target.lab===current){retained=kept;saveDraft();}else{const draft=readDraft(target.lab);if(draft&&sameSnapshot(draft,target.value))write(storageKey(target.lab.id),JSON.stringify({...draft,retained:kept}));}}

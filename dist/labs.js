@@ -1,5 +1,6 @@
-// Adapted from the COMP 461 OpenGL lab manual. Every code string is a complete
-// C/C++ GLUT program; the browser runtime supplies the legacy graphics API.
+// Teaching examples, including adaptations of the COMP 461 OpenGL lab manual.
+// Every code string is a complete C/C++ GLUT program; the browser runtime
+// supplies the legacy graphics API.
 const header = '#include <GL/glut.h>\n';
 
 function program2D(body, options = {}) {
@@ -750,6 +751,490 @@ int main(int argc, char **argv) {
     init();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    glutMainLoop();
+    return 0;
+}
+`
+  },
+  {
+    id: '17', title: 'OOP Snake: keyboard & mouse', group: 'Games', page: null,
+    description: 'Build a C++17 Snake game with encapsulated models, a state machine, and four procedural skins behind a virtual interface.',
+    exercise: 'Add a fifth Skin subclass and register it in Game. Then change the board dimensions or add a new menu option without moving game rules into the GLUT callbacks.',
+    notes: ['Click the canvas to focus. Arrows or WASD steer and navigate; Enter/Space selects. P pauses, R restarts, B toggles walls, and Esc returns to the menu.', 'Hover or click menu rows; the left/right arrow zones cycle Walls, Speed, and Skin. During play, click toward a side of the head to turn. Click to resume or restart after a loss.', 'Snake buffers two legal turns and allows entry into a departing tail. Board owns wall/wrap rules; Food chooses empty cells. Game owns the state machine and unique_ptr skins.', 'Callbacks uses static trampolines to forward GLUT C function pointers to one Game instance. A timer yields to the browser; no blocking loop, filesystem assets, exceptions, or exit calls are needed.', 'Best score lasts for this program run. Quit shows a thank-you screen. Skin art uses OpenGL primitives, and mouse coordinates follow the current reshape dimensions.'],
+    code: `// OOP Snake: one translation unit, C++17, no files or blocking game loop.
+#include <GL/glut.h>
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <deque>
+#include <memory>
+#include <string>
+
+constexpr int COLS = 24, ROWS = 24, CELL = 25;
+constexpr int WIDTH = COLS * CELL, HEIGHT = ROWS * CELL + 80;
+const char* SPEED_NAMES[] = {"Slow", "Normal", "Fast"};
+constexpr int START_DELAY[] = {180, 130, 85};
+constexpr int MIN_DELAY[] = {80, 55, 35};
+
+struct Point {
+    int x, y;
+    bool operator==(Point p) const { return x == p.x && y == p.y; }
+    Point operator+(Point p) const { return {x + p.x, y + p.y}; }
+};
+enum class Direction { Up, Down, Left, Right };
+Point step(Direction d) {
+    switch (d) {
+        case Direction::Up: return {0, 1};
+        case Direction::Down: return {0, -1};
+        case Direction::Left: return {-1, 0};
+        case Direction::Right: return {1, 0};
+    }
+    return {0, 0};
+}
+bool opposite(Direction a, Direction b) {
+    Point p = step(a), q = step(b);
+    return p.x + q.x == 0 && p.y + q.y == 0;
+}
+
+// Drawing helpers know nothing about game state.
+void rect(float x, float y, float w, float h) {
+    glBegin(GL_QUADS);
+    glVertex2f(x,y); glVertex2f(x+w,y);
+    glVertex2f(x+w,y+h); glVertex2f(x,y+h);
+    glEnd();
+}
+void text(float x, float y, const std::string& s,
+          void* font = GLUT_BITMAP_HELVETICA_18) {
+    glRasterPos2f(x,y);
+    for (unsigned char c : s) glutBitmapCharacter(font,c);
+}
+void centered(float y, const std::string& s,
+              void* font = GLUT_BITMAP_HELVETICA_18) {
+    int w = 0;
+    for (unsigned char c : s) w += glutBitmapWidth(font,c);
+    text((WIDTH-w)/2.0f,y,s,font);
+}
+void disk(float x, float y, float radius) {
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex2f(x,y);
+    for (int i = 0; i <= 20; ++i) {
+        float a = i * 6.2831853f / 20;
+        glVertex2f(x+radius*std::cos(a),y+radius*std::sin(a));
+    }
+    glEnd();
+}
+
+// Pure model: Snake owns its body and a small queue of future turns.
+// Validate against the LAST queued direction, not just the current heading.
+class Snake {
+    std::deque<Point> body_;
+    std::deque<Direction> turns_;
+    Direction direction_ = Direction::Right;
+public:
+    Snake() { reset(); }
+    void reset() {
+        body_.clear(); turns_.clear(); direction_ = Direction::Right;
+        for (int i = 0; i < 4; ++i) body_.push_back({COLS/2-i,ROWS/2});
+    }
+    const std::deque<Point>& body() const { return body_; }
+    Point head() const { return body_.front(); }
+    Direction direction() const { return direction_; }
+    void turn(Direction d) {
+        Direction last = turns_.empty() ? direction_ : turns_.back();
+        if (turns_.size() < 2 && d != last && !opposite(d,last))
+            turns_.push_back(d);
+    }
+    Point next() {
+        if (!turns_.empty()) {
+            direction_ = turns_.front(); turns_.pop_front();
+        }
+        return head() + step(direction_);
+    }
+    bool contains(Point p) const {
+        return std::find(body_.begin(),body_.end(),p) != body_.end();
+    }
+    bool collides(Point p, bool growing) const {
+        // Entering the departing tail is legal unless food keeps it in place.
+        size_t count = body_.size() - (growing ? 0 : 1);
+        for (size_t i = 0; i < count; ++i) if (body_[i] == p) return true;
+        return false;
+    }
+    void move(Point p, bool growing) {
+        if (!growing) body_.pop_back();
+        body_.push_front(p);
+    }
+};
+
+class Board {
+    bool walls_ = true;
+public:
+    bool walls() const { return walls_; }
+    void toggleWalls() { walls_ = !walls_; }
+    bool outside(Point p) const {
+        return p.x < 0 || p.x >= COLS || p.y < 0 || p.y >= ROWS;
+    }
+    Point wrap(Point p) const {
+        return {(p.x+COLS)%COLS,(p.y+ROWS)%ROWS};
+    }
+    void draw() const {
+        for (int y = 0; y < ROWS; ++y) for (int x = 0; x < COLS; ++x) {
+            float shade = (x+y)%2 ? .085f : .105f;
+            glColor3f(shade,shade+.025f,shade+.04f);
+            rect(x*CELL,y*CELL,CELL,CELL);
+        }
+        glColor3f(walls_ ? .95f : .2f,walls_ ? .35f : .65f,.4f);
+        glLineWidth(2);
+        glBegin(GL_LINE_LOOP);
+        glVertex2f(1,1); glVertex2f(WIDTH-1,1);
+        glVertex2f(WIDTH-1,ROWS*CELL-1); glVertex2f(1,ROWS*CELL-1);
+        glEnd();
+    }
+};
+
+class Food {
+    Point position_ = {0,0};
+public:
+    Point position() const { return position_; }
+    bool place(const Snake& snake) {
+        // Reservoir sampling chooses an empty cell without retrying forever
+        // when the board is nearly full. False means the player has won.
+        int empty = 0;
+        for (int y = 0; y < ROWS; ++y) for (int x = 0; x < COLS; ++x) {
+            Point p{x,y};
+            if (!snake.contains(p) && std::rand() % (++empty) == 0) position_ = p;
+        }
+        return empty != 0;
+    }
+};
+
+// Polymorphism: Game draws through this interface. Concrete skins use unit
+// cell coordinates, so the same objects also render the larger menu preview.
+class Skin {
+public:
+    virtual ~Skin() = default;
+    virtual const char* name() const = 0;
+    virtual void segment(bool head) const = 0;
+    virtual void food() const = 0;
+    void drawSegment(Point p, bool head, Direction d) const {
+        glPushMatrix();
+        glTranslatef((p.x+.5f)*CELL,(p.y+.5f)*CELL,0);
+        glScalef(CELL,CELL,1);
+        segment(head);
+        if (head) {
+            Point v = step(d);
+            glColor3f(.02f,.04f,.07f);
+            disk(v.x*.20f-v.y*.19f,v.y*.20f+v.x*.19f,.065f);
+            disk(v.x*.20f+v.y*.19f,v.y*.20f-v.x*.19f,.065f);
+        }
+        glPopMatrix();
+    }
+    void drawFood(Point p) const {
+        glPushMatrix();
+        glTranslatef((p.x+.5f)*CELL,(p.y+.5f)*CELL,0);
+        glScalef(CELL,CELL,1); food(); glPopMatrix();
+    }
+};
+class ClassicSkin : public Skin {
+public:
+    const char* name() const override { return "Classic"; }
+    void segment(bool head) const override {
+        glColor3f(head ? .65f : .25f,.85f,.35f);
+        rect(-.44f,-.44f,.88f,.88f);
+    }
+    void food() const override {
+        glColor3f(1,.3f,.3f); disk(0,0,.31f);
+        glColor3f(.5f,1,.5f); rect(0,.24f,.09f,.18f);
+    }
+};
+class NeonSkin : public Skin {
+public:
+    const char* name() const override { return "Neon"; }
+    void segment(bool head) const override {
+        glColor3f(.05f,.85f,1); rect(-.46f,-.46f,.92f,.92f);
+        glColor3f(.03f,.18f,.27f); rect(-.34f,-.34f,.68f,.68f);
+        if (head) { glColor3f(.6f,1,1); rect(-.28f,-.28f,.56f,.56f); }
+    }
+    void food() const override {
+        glColor3f(1,.2f,.8f); disk(0,0,.36f);
+        glColor3f(.18f,.03f,.2f); disk(0,0,.20f);
+    }
+};
+class LavaSkin : public Skin {
+public:
+    const char* name() const override { return "Lava"; }
+    void segment(bool head) const override {
+        glColor3f(.6f,.12f,.05f); rect(-.46f,-.46f,.92f,.92f);
+        glColor3f(1,head ? .85f : .48f,.08f); disk(0,0,.36f);
+        glColor3f(1,.9f,.3f); rect(-.4f,-.06f,.8f,.12f);
+    }
+    void food() const override {
+        glColor3f(1,.25f,.04f); disk(0,0,.37f);
+        glColor3f(1,.9f,.3f); disk(.05f,.05f,.22f);
+    }
+};
+class OceanSkin : public Skin {
+public:
+    const char* name() const override { return "Ocean"; }
+    void segment(bool head) const override {
+        glColor3f(.08f,head ? .85f : .5f,.85f); disk(0,0,.46f);
+        glColor3f(.55f,.95f,1); rect(-.28f,-.15f,.56f,.10f);
+        rect(-.20f,.06f,.4f,.10f);
+    }
+    void food() const override {
+        glColor3f(1,.7f,.45f); disk(0,0,.34f);
+        glColor3f(1,.94f,.8f); disk(-.08f,.08f,.14f);
+    }
+};
+
+// Menu owns selection and hit testing, while Game applies each command.
+class Menu {
+    int selected_ = 0;
+public:
+    enum Item { Start, Walls, Speed, SkinChoice, Quit, Count };
+    int selected() const { return selected_; }
+    void move(int delta) { selected_ = (selected_+delta+Count)%Count; }
+    int hit(float x, float y) const {
+        if (x < 105 || x > 495) return -1;
+        for (int i = 0; i < Count; ++i)
+            if (std::fabs(y-(450-i*52)) <= 23) return i;
+        return -1;
+    }
+    void hover(float x, float y) {
+        int item = hit(x,y);
+        if (item >= 0) selected_ = item;
+    }
+    void draw(bool walls, int speed, const Skin& skin, int best) const {
+        glColor4f(.015f,.025f,.045f,.87f); rect(0,0,WIDTH,600);
+        glColor3f(.07f,.10f,.15f); rect(80,70,440,510);
+        glColor3f(.65f,1,.65f);
+        centered(535,"S N A K E",GLUT_BITMAP_TIMES_ROMAN_24);
+        glColor3f(.78f,.83f,.9f);
+        centered(505,"C++ objects / OpenGL pixels",GLUT_BITMAP_HELVETICA_12);
+        std::array<std::string,Count> labels = {"Start game",
+            walls ? "Walls: ON" : "Walls: OFF", std::string("Speed: ")+SPEED_NAMES[speed],
+            std::string("Skin: ")+skin.name(), "Quit"};
+        for (int i = 0; i < Count; ++i) {
+            float y = 450-i*52;
+            if (i == selected_) {
+                glColor3f(.17f,.28f,.31f); rect(105,y-23,390,46);
+            }
+            glColor3f(.92f,.96f,1); centered(y-6,labels[i]);
+            if (i >= Walls && i <= SkinChoice) {
+                text(120,y-6,"<"); text(466,y-6,">");
+            }
+        }
+        for (int i = 0; i < 4; ++i)
+            skin.drawSegment({9+i,6},i==3,Direction::Right);
+        skin.drawFood({15,6});
+        glColor3f(.78f,.83f,.9f);
+        centered(128,"Best this run: "+std::to_string(best),GLUT_BITMAP_HELVETICA_12);
+        centered(102,"Arrows / WASD + Enter   or   point and click",GLUT_BITMAP_HELVETICA_12);
+    }
+};
+
+class Game {
+    enum class State { Menu, Playing, Paused, GameOver, Thanks };
+    State state_ = State::Menu;
+    Board board_;
+    Snake snake_;
+    Food food_;
+    Menu menu_;
+    // Unique ownership + virtual dispatch make adding a fifth skin local.
+    std::array<std::unique_ptr<Skin>,4> skins_;
+    int skinIndex_ = 0, speed_ = 1, score_ = 0, best_ = 0;
+    int windowWidth_ = WIDTH, windowHeight_ = HEIGHT, lastMove_ = 0;
+    bool won_ = false;
+    const Skin& skin() const { return *skins_[skinIndex_]; }
+    void start() {
+        snake_.reset(); food_.place(snake_); score_ = 0; won_ = false;
+        state_ = State::Playing; lastMove_ = glutGet(GLUT_ELAPSED_TIME);
+    }
+    void resume() {
+        state_ = State::Playing; lastMove_ = glutGet(GLUT_ELAPSED_TIME);
+    }
+    void change(int delta) {
+        switch (menu_.selected()) {
+            case Menu::Walls: board_.toggleWalls(); break;
+            case Menu::Speed: speed_ = (speed_+delta+3)%3; break;
+            case Menu::SkinChoice: skinIndex_ = (skinIndex_+delta+4)%4; break;
+            default: break;
+        }
+    }
+    void activate() {
+        if (menu_.selected() == Menu::Start) start();
+        else if (menu_.selected() == Menu::Quit) state_ = State::Thanks;
+        else change(1);
+    }
+    void navigate(Direction d) {
+        if (state_ == State::Menu) {
+            switch (d) {
+                case Direction::Up: menu_.move(-1); break;
+                case Direction::Down: menu_.move(1); break;
+                case Direction::Left: change(-1); break;
+                case Direction::Right: change(1); break;
+            }
+        } else if (state_ == State::Playing) snake_.turn(d);
+    }
+    void overlay(const std::string& title, const std::string& hint) const {
+        glColor4f(.02f,.03f,.05f,.92f); rect(55,240,490,130);
+        glColor3f(.8f,1,.75f); centered(318,title,GLUT_BITMAP_TIMES_ROMAN_24);
+        glColor3f(1,1,1); centered(278,hint,GLUT_BITMAP_HELVETICA_12);
+    }
+public:
+    Game() {
+        skins_[0] = std::make_unique<ClassicSkin>();
+        skins_[1] = std::make_unique<NeonSkin>();
+        skins_[2] = std::make_unique<LavaSkin>();
+        skins_[3] = std::make_unique<OceanSkin>();
+        food_.place(snake_);
+    }
+    void display() const {
+        glClear(GL_COLOR_BUFFER_BIT); glLoadIdentity(); board_.draw();
+        if (!won_) skin().drawFood(food_.position());
+        for (size_t i = snake_.body().size(); i-- > 0;)
+            skin().drawSegment(snake_.body()[i],i==0,snake_.direction());
+        glColor3f(.035f,.05f,.08f); rect(0,600,WIDTH,80);
+        glColor3f(.9f,.95f,1);
+        text(15,651,"Score: "+std::to_string(score_)+"    Best: "+std::to_string(best_));
+        text(320,651,std::string(board_.walls()?"Walls ON  /  ":"Wrap  /  ")+SPEED_NAMES[speed_]);
+        text(15,625,"Arrows/WASD steer | click toward a side | P pause",GLUT_BITMAP_HELVETICA_12);
+        text(15,607,"R restart | B walls | Esc menu",GLUT_BITMAP_HELVETICA_12);
+        switch (state_) {
+            case State::Menu: menu_.draw(board_.walls(),speed_,skin(),best_); break;
+            case State::Paused: overlay("PAUSED","Click, P or Space to resume. Esc for menu."); break;
+            case State::GameOver:
+                overlay(won_ ? "BOARD COMPLETE!" : "GAME OVER","Click / Enter / Space / R to restart. Esc for menu."); break;
+            case State::Thanks:
+                overlay("Thanks for playing!","Click or press Enter to return to the menu."); break;
+            case State::Playing: break;
+        }
+        glutSwapBuffers();
+    }
+    void tick() {
+        int now = glutGet(GLUT_ELAPSED_TIME);
+        int delay = std::max(MIN_DELAY[speed_],START_DELAY[speed_]-score_*2);
+        if (state_ != State::Playing || now-lastMove_ < delay) return;
+        // One move per callback avoids a burst of deaths after a background tab.
+        lastMove_ = now;
+        Point next = snake_.next();
+        if (!board_.walls()) next = board_.wrap(next);
+        bool growing = next == food_.position();
+        if (board_.outside(next) || snake_.collides(next,growing)) {
+            state_ = State::GameOver;
+        } else {
+            snake_.move(next,growing);
+            if (growing) {
+                best_ = std::max(best_,++score_);
+                if (!food_.place(snake_)) { won_ = true; state_ = State::GameOver; }
+            }
+        }
+        glutPostRedisplay();
+    }
+    void keyboard(unsigned char key) {
+        if (key >= 'A' && key <= 'Z') key += 'a'-'A';
+        if (key == 27) state_ = State::Menu;
+        else if (state_ == State::Thanks) {
+            if (key == 13 || key == ' ') state_ = State::Menu;
+        } else if (key == 'b') board_.toggleWalls();
+        else if (key == 'r') start();
+        else if (key == 'p' && state_ == State::Playing) state_ = State::Paused;
+        else if ((key == 'p' || key == ' ' || key == 13) && state_ == State::Paused) resume();
+        else if (key == 13 || key == ' ') {
+            if (state_ == State::Menu) activate();
+            else if (state_ == State::GameOver) start();
+        } else if (key == 'w') navigate(Direction::Up);
+        else if (key == 's') navigate(Direction::Down);
+        else if (key == 'a') navigate(Direction::Left);
+        else if (key == 'd') navigate(Direction::Right);
+        glutPostRedisplay();
+    }
+    void special(int key) {
+        switch (key) {
+            case GLUT_KEY_UP: navigate(Direction::Up); break;
+            case GLUT_KEY_DOWN: navigate(Direction::Down); break;
+            case GLUT_KEY_LEFT: navigate(Direction::Left); break;
+            case GLUT_KEY_RIGHT: navigate(Direction::Right); break;
+        }
+        glutPostRedisplay();
+    }
+    // The projection stretches to the window. Apply its inverse to mouse
+    // pixels, including GLUT's top-left origin, using the latest reshape size.
+    void pointer(int x, int y, bool click) {
+        float worldX = x * float(WIDTH)/windowWidth_;
+        float worldY = (windowHeight_-y) * float(HEIGHT)/windowHeight_;
+        if (state_ == State::Menu) {
+            int hit = menu_.hit(worldX,worldY);
+            menu_.hover(worldX,worldY);
+            if (click && hit >= 0) {
+                if (hit >= Menu::Walls && hit <= Menu::SkinChoice)
+                    change(worldX < 155 ? -1 : 1);
+                else activate();
+            }
+        } else if (click) {
+            if (state_ == State::Paused) resume();
+            else if (state_ == State::GameOver) start();
+            else if (state_ == State::Thanks) state_ = State::Menu;
+            else if (worldY < ROWS*CELL) {
+                float dx = worldX/CELL-(snake_.head().x+.5f);
+                float dy = worldY/CELL-(snake_.head().y+.5f);
+                if (std::fabs(dx) > std::fabs(dy))
+                    snake_.turn(dx > 0 ? Direction::Right : Direction::Left);
+                else if (dy != 0) snake_.turn(dy > 0 ? Direction::Up : Direction::Down);
+            }
+        }
+        glutPostRedisplay();
+    }
+    void reshape(int w, int h) {
+        windowWidth_ = std::max(1,w); windowHeight_ = std::max(1,h);
+        glViewport(0,0,windowWidth_,windowHeight_);
+        glMatrixMode(GL_PROJECTION); glLoadIdentity();
+        glOrtho(0,WIDTH,0,HEIGHT,-1,1);
+        glMatrixMode(GL_MODELVIEW); glLoadIdentity();
+    }
+};
+
+// GLUT accepts C function pointers, not member functions with a hidden this.
+// These static trampolines forward to ONE non-owning instance pointer. Game
+// still owns all state; callbacks neither copy it nor expose model internals.
+class Callbacks {
+    static Game* game_;
+    static void display() { game_->display(); }
+    static void reshape(int w, int h) { game_->reshape(w,h); }
+    static void keyboard(unsigned char k, int, int) { game_->keyboard(k); }
+    static void special(int k, int, int) { game_->special(k); }
+    static void mouse(int b, int state, int x, int y) {
+        if (b == GLUT_LEFT_BUTTON && state == GLUT_DOWN) game_->pointer(x,y,true);
+    }
+    static void hover(int x, int y) { game_->pointer(x,y,false); }
+    static void timer(int) {
+        game_->tick();
+        glutTimerFunc(16,timer,0); // Yield to the browser between callbacks.
+    }
+public:
+    static void bind(Game& game) {
+        game_ = &game;
+        glutDisplayFunc(display); glutReshapeFunc(reshape);
+        glutKeyboardFunc(keyboard); glutSpecialFunc(special);
+        glutMouseFunc(mouse); glutPassiveMotionFunc(hover);
+        glutTimerFunc(16,timer,0);
+    }
+};
+Game* Callbacks::game_ = nullptr;
+
+int main(int argc, char** argv) {
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    glutInit(&argc,argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(WIDTH,HEIGHT);
+    glutCreateWindow("OOP Snake | GLab");
+    glClearColor(.02f,.03f,.05f,1);
+    glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    // Static storage survives Emscripten returning from main to its event loop.
+    static Game game;
+    Callbacks::bind(game);
+    game.reshape(WIDTH,HEIGHT);
     glutMainLoop();
     return 0;
 }

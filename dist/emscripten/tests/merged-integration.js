@@ -1,7 +1,8 @@
-import {Compiler,Runner} from '../../emscripten-adapter.js';
+import {Compiler,Runner,bindCanvasInput} from '../../emscripten-adapter.js';
 import {OutputMirror} from '../../output-mirror.js';
 import {labs,starter} from '../../labs.js';
 import {mergedCases} from './merged-cases.js';
+import {cppOopCases} from './cpp-oop-cases.js';
 import {sha256} from './digest.js';
 const $=id=>document.getElementById(id);
 const assert=(value,message)=>{if(!value)throw new Error(message);};
@@ -33,11 +34,15 @@ export async function runMergedIntegration({only=null}={}){
   const log=text=>{$('state').textContent=text;$('log').textContent+=text+'\n';};
   const publish=()=>{$('results').textContent=JSON.stringify(report,null,2);};
   const check=async(name,fn)=>{const start=performance.now();try{const evidence=await fn();report.tests.push({name,status:'pass',elapsedMs:performance.now()-start,...evidence});log('PASS '+name);}catch(error){report.tests.push({name,status:'fail',elapsedMs:performance.now()-start,error:error.stack??String(error),...error.evidence});log('FAIL '+name+': '+error.message);}publish();};
-  const compiler=new Compiler();let lastArtifact;
-  const compile=async sourceCase=>{log('Compiling '+sourceCase.name);try{const value=await timeout(compiler.compile(sourceCase.source,{language:sourceCase.language,args:sourceCase.args??[]}),180000,'Compilation exceeded three minutes');assert((value.wasm??value).files?.some(file=>file.path.endsWith('.js')),'Editor compiler must emit Emscripten JS');assert((value.wasm??value).files?.some(file=>file.path.endsWith('.wasm')),'Editor compiler must emit Wasm');return value;}catch(error){error.evidence={source:sourceCase.source,language:sourceCase.language,command:error.command,diagnostics:error.diagnostics};throw error;}};
+  const compiler=new Compiler();let lastArtifact;const inputArtifacts=new Map();
+  const compile=async sourceCase=>{log('Compiling '+sourceCase.name);const cacheKey=sourceCase.inputSteps?JSON.stringify([sourceCase.language,sourceCase.source,sourceCase.args]):null;if(cacheKey&&inputArtifacts.has(cacheKey))return inputArtifacts.get(cacheKey);try{const value=await timeout(compiler.compile(sourceCase.source,{language:sourceCase.language,args:sourceCase.args??[]}),180000,'Compilation exceeded three minutes');assert((value.wasm??value).files?.some(file=>file.path.endsWith('.js')),'Editor compiler must emit Emscripten JS');assert((value.wasm??value).files?.some(file=>file.path.endsWith('.wasm')),'Editor compiler must emit Wasm');if(cacheKey)inputArtifacts.set(cacheKey,value);return value;}catch(error){error.evidence={source:sourceCase.source,language:sourceCase.language,command:error.command,diagnostics:error.diagnostics};throw error;}};
   const execute=async sourceCase=>{
     const artifact=await compile(sourceCase);lastArtifact=artifact;
-    const {runner,events}=makeRunner();
+    const {runner,canvas,events}=makeRunner();
+    if(sourceCase.canvasInput)bindCanvasInput(canvas,event=>runner.handleEvent(event));
+    let mirror;
+    if(sourceCase.mirrorInput){const popup={closed:false,postMessage:()=>{}};mirror=new OutputMirror({state:()=>({}),capture:()=>{},input:event=>runner.handleEvent(event),stop:()=>{},blocked:()=>{}});mirror.popup=popup;mirror.session='input-regression';}
+    const input=event=>mirror?mirror.receive({origin:location.origin,source:mirror.popup,data:{channel:'gllab-output-v1',session:mirror.session,type:'input',event}}):runner.handleEvent(event);
     let started,pixels;
     try{
       started=await timeout(runner.run(artifact.wasm??artifact,{stdin:sourceCase.stdin??''}),30000,'Runner did not start');await delay(250);
@@ -52,6 +57,23 @@ export async function runMergedIntegration({only=null}={}){
       if(sourceCase.inputPixel){runner.handleEvent({type:'keydown',key:'a',x:20,y:20,modifiers:0});const after=await waitPixel(runner,sourceCase.inputPixel);pixels.inputCenter=after.center;}
       if(sourceCase.mousePixel){runner.handleEvent({type:'mouse',button:0,state:0,x:23,y:41,modifiers:0});const after=await waitPixel(runner,sourceCase.mousePixel);assert(events.stdout.includes('mouse=23,41'),'Mouse coordinates were not preserved: '+events.stdout);pixels.mouseCenter=after.center;}
       if(sourceCase.menuPixel){runner.handleEvent({type:'mouse',button:2,state:0,x:23,y:41,modifiers:0});await waitFor(()=>events.menus.length>0);const menu=events.menus.at(-1);assert(menu.items.some(item=>item.value===42),'GLUT menu entries did not reach editor');runner.handleEvent({type:'menu',menu:menu.menu,value:42});const after=await waitPixel(runner,sourceCase.menuPixel);assert(events.stdout.includes('menu=42'),'Menu callback lost selected value');pixels.menuCenter=after.center;}
+      for(const step of sourceCase.inputSteps??[]){
+        const before=events.stdout.length;
+        if(step.css)canvas.style.cssText=step.css;
+        if(step.dom){
+          const rect=canvas.getBoundingClientRect(),event=step.dom;
+          if(event.type==='keydown')canvas.focus();
+          const options={bubbles:true,cancelable:true,clientX:rect.left+(event.x??0),clientY:rect.top+(event.y??0),shiftKey:!!(event.modifiers&1),ctrlKey:!!(event.modifiers&2),altKey:!!(event.modifiers&4),...event};
+          const value=event.type==='wheel'?new WheelEvent('wheel',options):event.type.startsWith('key')?new KeyboardEvent(event.type,options):event.type==='blur'?new Event('blur'):new PointerEvent(event.type,options);
+          const accepted=canvas.dispatchEvent(value);
+          if(event.type==='wheel'||event.type.startsWith('key'))assert(!accepted,'Canvas did not prevent browser default for '+event.type);
+        }
+        if(step.event)input({x:23,y:41,modifiers:0,...step.event});
+        if(step.expected){try{await waitFor(()=>events.stdout.slice(before).includes(step.expected),5000);}catch(error){throw new Error('Expected '+JSON.stringify(step.expected)+' after '+JSON.stringify(step.event??step.dom)+'; received '+JSON.stringify(events.stdout.slice(before)));}}
+        if(step.pixel)await waitPixel(runner,step.pixel);
+        if(step.count){await delay(150);assert(events.stdout.slice(before).split(step.expected).length-1===step.count,'Duplicate or missing input callback: '+events.stdout.slice(before));}
+      }
+      assert(events.errors.length===0,'Input runtime error: '+events.errors.join('\n'));
       if(sourceCase.updatedTitle)await waitFor(()=>events.titles.includes(sourceCase.updatedTitle),5000);
       assert(events.exits.every(Number.isInteger),'Runtime emitted an invalid exit status: '+JSON.stringify(events.exits));
       return {source:sourceCase.source,sourceSha256:await sha256(new TextEncoder().encode(sourceCase.source)),artifact:artifactEvidence(artifact),started,events,pixels:pixels?{width:pixels.width,height:pixels.height,center:pixels.center,corner:pixels.corner,differentPixels:pixels.differentPixels,pngBytes:pixels.pngBytes,inputCenter:pixels.inputCenter,mouseCenter:pixels.mouseCenter}:null};
@@ -60,7 +82,7 @@ export async function runMergedIntegration({only=null}={}){
   $('run').disabled=true;$('log').textContent='';$('gallery').replaceChildren();
   try{
     log('Loading merged compiler');await timeout(compiler.init(log),180000,'Compiler initialization exceeded three minutes');report.compilerInfo=compiler.info??null;
-    const cases=mergedCases(seed,labs,starter);
+    const cases=mergedCases(seed,labs,starter).concat(cppOopCases);
     for(const sourceCase of cases){if(!only||sourceCase.name.toLowerCase().includes(only.toLowerCase()))await check(sourceCase.name,()=>execute(sourceCase));}
     if(!only){
       await check('syntax error is real compiler diagnostic',async()=>{const source='int main(void) { int broken = ; return 0; }';let error;try{await compiler.compile(source,{language:'c'});}catch(value){error=value;}assert(error&&/error:|expected expression/i.test(error.diagnostics??error.message),'Invalid source must produce compiler diagnostics');return {source,diagnostics:error.diagnostics??error.message};});

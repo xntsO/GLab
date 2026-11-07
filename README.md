@@ -14,6 +14,12 @@ GLab uses Emscripten through Emception to compile C11 and C++17 to WebAssembly. 
 - Standard input supplied before each run, console output, build arguments, and JS/Wasm export.
 - English and Arabic guides and a hidden teaching library.
 
+## C++ and game classes
+
+C++17 supports classes, inheritance and virtual interfaces, RTTI, templates, STL containers, smart pointers, moves and lambdas. C++ builds enable `-fexceptions` during compilation and linking so `try`/`catch`, stack unwinding and standard-library exceptions work. This uses Emscripten's JavaScript exception handling and the bundled libc++/libc++abi variants. It adds code size and call overhead; it does not require native Wasm exception support. C builds keep their existing flags. Advanced build arguments can override this default, for example `-fno-exceptions` for code that does not throw or catch.
+
+GLUT takes plain function pointers. Use a static member callback or a captureless lambda that forwards to a static/global `Game` instance. A capturing lambda or non-static member function cannot be passed directly. Keep callback state alive after `glutMainLoop()`, which does not return in the browser. Global and local static constructors run normally; their destructors run on normal console-program exit. GLUT keeps the runtime alive, so `std::exit` in a GLUT callback does not run static destructors or stop the loop. Use `emscripten_force_exit(0)` from `<emscripten.h>` when a true runtime shutdown and static cleanup are required. Neither exit function unwinds automatic objects in `main`; the editor's Stop discards the sandbox without C++ cleanup. Release resources explicitly before stopping if cleanup matters. See the [callback example and limitations](dist/compatibility.html).
+
 ## Run locally
 
 Clone the repository and serve the static directory with Python 3:
@@ -49,7 +55,7 @@ With the local server running, open:
 http://127.0.0.1:8000/emscripten/tests/merged-integration.html?autorun
 ```
 
-The suite has 35 checks for compilation, standard-library behavior, graphics pixels, input, error recovery, and the output mirror. It does not replace testing the actual editor. For UI changes, also exercise desktop and phone layouts, Run/Stop, draft preservation, build options, and the pop-out window. Report the browser used and the checks actually run.
+The suite checks compilation, C++ OOP/RTTI/templates/ownership/exceptions, standard-library behavior, graphics pixels, GLUT class callbacks and object lifetime, input, error recovery, and the output mirror. `cpp-oop-cases.js` also exports `runCppOopDiagnostics(compiler)` for five expected compile failures in class code; run it with an initialized editor `Compiler`. The suite does not replace testing the actual editor. For UI changes, also exercise desktop and phone layouts, Run/Stop, draft preservation, build options, and the pop-out window. Report the browser used and the checks actually run.
 
 ## Limitations
 

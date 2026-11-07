@@ -68,6 +68,84 @@ static GLFWwindow *window;static int count;
 static void frame(void){glClearColor(0,1,0,1);glClear(GL_COLOR_BUFFER_BIT);glfwSwapBuffers(window);if(++count==3){printf("glfw-loop=%d\\n",count);emscripten_cancel_main_loop();}}
 int main(void){if(!glfwInit())return 43;glfwWindowHint(GLFW_CLIENT_API,GLFW_OPENGL_ES_API);glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,2);window=glfwCreateWindow(96,96,"GLFW browser loop",0,0);if(!window)return 44;glfwMakeContextCurrent(window);emscripten_set_main_loop(frame,0,1);return 0;}`}
   ];
+
+  const glutInputSource=String.raw`#include <GL/glut.h>
+#include <stdio.h>
+static int held,ticks,idles,draws;
+static void display(void){draws++;glClearColor(held&&ticks>=3&&idles&&draws>1?0:1,held&&ticks>=3&&idles&&draws>1?1:0,0,1);glClear(GL_COLOR_BUFFER_BIT);glFlush();}
+static void key(unsigned char k,int x,int y){printf("key=%d,%d,%d,%d\n",k,x,y,glutGetModifiers());held=1;}
+static void up(unsigned char k,int x,int y){printf("up=%d,%d,%d,%d\n",k,x,y,glutGetModifiers());held=0;}
+static void special(int k,int x,int y){printf("special=%d,%d,%d,%d\n",k,x,y,glutGetModifiers());}
+static void specialup(int k,int x,int y){printf("specialup=%d,%d,%d,%d\n",k,x,y,glutGetModifiers());}
+static void mouse(int b,int s,int x,int y){printf("mouse=%d,%d,%d,%d,%d\n",b,s,x,y,glutGetModifiers());}
+static void motion(int x,int y){printf("motion=%d,%d,%d\n",x,y,glutGetModifiers());}
+static void passive(int x,int y){printf("passive=%d,%d,%d\n",x,y,glutGetModifiers());}
+static void entry(int state){printf("entry=%d,%d\n",state,glutGetModifiers());}
+static void timer(int value){ticks++;glutPostRedisplay();glutTimerFunc(20,timer,value);}
+static void idle(void){idles++;}
+int main(int argc,char **argv){glutInit(&argc,argv);glutInitWindowSize(96,96);glutCreateWindow("Input regression");glutDisplayFunc(display);glutKeyboardFunc(key);glutKeyboardUpFunc(up);glutSpecialFunc(special);glutSpecialUpFunc(specialup);glutMouseFunc(mouse);glutMotionFunc(motion);glutPassiveMotionFunc(passive);glutEntryFunc(entry);glutTimerFunc(20,timer,7);glutIdleFunc(idle);glutMainLoop();return 0;}`;
+  const glutCase=(name,inputSteps)=>({name:'input regression GLUT '+name,language:'c',active:true,size:[96,96],pixel:[255,0,0,255],source:glutInputSource,inputSteps});
+  const keySteps=(key,value,kind='key',modifiers=0)=>['keydown','keyup'].map((type,i)=>({event:{type,key,modifiers},expected:`${i?(kind==='key'?'up':'specialup'):kind}=${value},23,41,${modifiers}\n`,count:1}));
+  cases.push(glutCase('special keys and releases',[
+    ...['ArrowLeft','ArrowUp','ArrowRight','ArrowDown','PageUp','PageDown','Home','End','Insert'].flatMap((key,i)=>keySteps(key,100+i,'special',7)),
+    ...Array.from({length:12},(_,i)=>keySteps('F'+(i+1),i+1,'special')).flat()
+  ]));
+  cases.push(glutCase('characters controls repeat and game loop',[
+    ...[['a',97,0],['A',65,1],['Z',90,0],['1',49,0],['!',33,1],['?',63,1],['\\',92,0],['~',126,1],['Enter',13,0],['Escape',27,0],[' ',32,0],['Tab',9,0],['Backspace',8,0],['Delete',127,0],['c',3,2],['x',120,4]].flatMap(([k,v,m])=>keySteps(k,v,'key',m)),
+    {event:{type:'keydown',key:'a'},expected:'key=97,23,41,0\n',count:1},
+    {event:{type:'keydown',key:'a',repeat:true},expected:'key=97,23,41,0\n',count:1,pixel:[0,255,0,255]},
+    {event:{type:'keyup',key:'a'},expected:'up=97,23,41,0\n',count:1}
+  ]));
+  cases.push({...glutCase('mouse coordinates motion wheel modifiers and entry',[
+    {event:{type:'passive',x:7,y:11,modifiers:1},expected:'passive=7,11,1\n',count:1},
+    ...[0,1,2].flatMap(button=>[
+      {event:{type:'mouse',button,state:0,x:15,y:27,modifiers:7},expected:`mouse=${button},0,15,27,7\n`,count:1},
+      {event:{type:'motion',buttons:[1,4,2][button],x:32,y:47,modifiers:2},expected:'motion=32,47,2\n',count:1},
+      {event:{type:'mouse',button,state:1,x:35,y:49,modifiers:4},expected:`mouse=${button},1,35,49,4\n`,count:1}
+    ]),
+    ...[-100,100].map(deltaY=>({event:{type:'wheel',deltaY,modifiers:3},expected:`mouse=${deltaY<0?3:4},0,23,41,3\nmouse=${deltaY<0?3:4},1,23,41,3\n`,count:1})),
+    {event:{type:'entry',state:1,modifiers:1},expected:'entry=1,1\n',count:1},
+    {event:{type:'entry',state:0,modifiers:0},expected:'entry=0,0\n',count:1}
+  ]),mirrorInput:true});
+  cases.push({name:'input regression GLFW callbacks polling repeat characters and scroll',language:'c',active:true,size:[96,96],pixel:[255,0,0,255],source:String.raw`#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#include <GL/gl.h>
+#include <emscripten.h>
+#include <stdio.h>
+static GLFWwindow *w;
+static void key(GLFWwindow *v,int k,int scan,int action,int mods){printf("key=%d,%d,%d,poll=%d\n",k,action,mods,glfwGetKey(v,k));}
+static void character(GLFWwindow *v,unsigned int c){printf("char=%u\n",c);}
+static void mouse(GLFWwindow *v,int b,int action,int mods){double x,y;glfwGetCursorPos(v,&x,&y);printf("mouse=%d,%d,%d,%g,%g,poll=%d\n",b,action,mods,x,y,glfwGetMouseButton(v,b));}
+static void cursor(GLFWwindow *v,double x,double y){printf("cursor=%g,%g\n",x,y);}
+static void scroll(GLFWwindow *v,double x,double y){printf("scroll=%g,%g\n",x,y);}
+static void enter(GLFWwindow *v,int state){printf("entry=%d\n",state);}
+static void frame(void){glClearColor(1,0,0,1);glClear(GL_COLOR_BUFFER_BIT);glfwSwapBuffers(w);glfwPollEvents();}
+int main(void){if(!glfwInit())return 1;glfwWindowHint(GLFW_CLIENT_API,GLFW_OPENGL_ES_API);glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,2);w=glfwCreateWindow(96,96,"GLFW input",0,0);if(!w)return 2;glfwMakeContextCurrent(w);glfwSetKeyCallback(w,key);glfwSetCharCallback(w,character);glfwSetMouseButtonCallback(w,mouse);glfwSetCursorPosCallback(w,cursor);glfwSetScrollCallback(w,scroll);glfwSetCursorEnterCallback(w,enter);emscripten_set_main_loop(frame,0,1);return 0;}`,inputSteps:[
+    {event:{type:'keydown',key:'A',code:'KeyA',modifiers:1},expected:'key=65,1,1,poll=1\nchar=65\n',count:1},
+    {event:{type:'keydown',key:'A',code:'KeyA',modifiers:1,repeat:true},expected:'key=65,2,1,poll=1\nchar=65\n',count:1},
+    {event:{type:'keyup',key:'a',code:'KeyA'},expected:'key=65,0,0,poll=0\n',count:1},
+    {event:{type:'keydown',key:'Shift',code:'ShiftLeft',modifiers:1},expected:'key=340,1,1,poll=1\n',count:1},
+    {event:{type:'keyup',key:'Shift',code:'ShiftLeft'},expected:'key=340,0,0,poll=0\n',count:1},
+    ...keySteps('ArrowLeft',263).map(s=>({...s,expected:s.event.type==='keydown'?'key=263,1,0,poll=1\n':'key=263,0,0,poll=0\n'})),
+    {event:{type:'passive',x:17,y:29},expected:'cursor=17,29\n',count:1},
+    ...[0,1,2].flatMap(button=>[0,1].map(state=>({event:{type:'mouse',button,state,x:31,y:43,modifiers:6},expected:`mouse=${[0,2,1][button]},${1-state},6,31,43,poll=${1-state}\n`,count:1}))),
+    {event:{type:'wheel',deltaX:2,deltaY:-100},expected:'scroll=2,1\n',count:1},
+    {event:{type:'wheel',deltaY:100},expected:'scroll=0,-1\n',count:1},
+    {event:{type:'entry',state:1},expected:'entry=1\n',count:1},
+    {event:{type:'entry',state:0},expected:'entry=0\n',count:1}
+  ]});
+
+
+  cases.push({...glutCase('visible canvas scale letterboxing focus wheel and blur',[
+    {css:'width:384px;height:192px;object-fit:contain',dom:{type:'pointermove',x:143,y:83},expected:'passive=23,41,0\n',count:1},
+    {dom:{type:'keydown',key:'ArrowUp',code:'ArrowUp'},expected:'special=101,23,41,0\n',count:1},
+    {dom:{type:'keyup',key:'ArrowUp',code:'ArrowUp'},expected:'specialup=101,23,41,0\n',count:1},
+    {dom:{type:'wheel',x:143,y:83,deltaY:-100,modifiers:1},expected:'mouse=3,0,23,41,1\nmouse=3,1,23,41,1\n',count:1},
+    {css:'width:192px;height:384px;object-fit:contain',dom:{type:'pointermove',x:63,y:191},expected:'passive=31,47,0\n',count:1},
+    {dom:{type:'keydown',key:' ',code:'Space'},expected:'key=32,31,47,0\n',count:1},
+    {dom:{type:'blur'},expected:'up=32,31,47,0\n',count:1}
+  ]),canvasInput:true});
+
   const selected=new Set(['2','9','10','11','13']);
   for(const lab of labs){if(selected.has(lab.id))continue;cases.push({name:`unchanged lab ${lab.id} ${lab.title}`,language:'cpp',source:lab.code,active:true,capture:true,...(lab.id==='1A'?{pixel:[0,0,0,255]}:lab.id==='1B'?{}:{nonUniform:true})});}
   return cases;

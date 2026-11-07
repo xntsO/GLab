@@ -1,7 +1,7 @@
 /* Emscripten's built-in GLUT implements windows and callbacks, but omits menus.
  * Keep menu selection in the existing GL Lab UI and invoke the Wasm callback. */
 var GLLabMenuLibrary = {
-  $GLLabMenus__deps: ['$GLUT', 'glutPostRedisplay'],
+  $GLLabMenus__deps: ['$GLUT', '$GLLabInput', 'glutPostRedisplay'],
   $GLLabMenus__postset: 'GLLabMenus.install();',
   $GLLabMenus: {
     next: 0, current: 0, menus: {}, attached: {},
@@ -11,6 +11,7 @@ var GLLabMenuLibrary = {
     },
     install: function() {
       Module.gllabInput=function(event) {
+        GLLabInput.prepare(event);
         if(event.type==='menuOpen') {GLLabMenus.show(event.menu,event.x,event.y);return true;}
         if(event.type==='menu') {
           var menu=GLLabMenus.menus[event.menu];

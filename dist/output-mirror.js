@@ -3,10 +3,13 @@ function validInput(event) {
   if (!event || typeof event !== 'object') return false;
   if (event.type === 'menu') return Number.isInteger(event.menu) && Number.isInteger(event.value);
   if (event.type === 'menuOpen') return Number.isInteger(event.menu) && Number.isFinite(event.x) && Number.isFinite(event.y);
-  if (!['mouse', 'motion', 'passive', 'keydown', 'keyup'].includes(event.type)) return false;
-  if (!Number.isFinite(event.x) || !Number.isFinite(event.y) || !Number.isInteger(event.modifiers) || event.modifiers < 0 || event.modifiers > 7) return false;
+  if (!['mouse', 'motion', 'passive', 'keydown', 'keyup', 'wheel', 'entry'].includes(event.type)) return false;
+  if (!Number.isFinite(event.x) || !Number.isFinite(event.y) || !Number.isInteger(event.modifiers) || event.modifiers < 0 || event.modifiers > 15) return false;
+  if (event.type === 'entry') return [0,1].includes(event.state);
+  if (event.type === 'wheel') return Number.isFinite(event.deltaY) && (event.deltaX === undefined || Number.isFinite(event.deltaX)) && (event.deltaMode === undefined || [0,1,2].includes(event.deltaMode));
+  if (event.buttons !== undefined && (!Number.isInteger(event.buttons) || event.buttons < 0 || event.buttons > 31)) return false;
   if (event.type === 'mouse') return Number.isInteger(event.button) && event.button >= 0 && event.button <= 4 && [0, 1].includes(event.state);
-  if (event.type === 'keydown' || event.type === 'keyup') return typeof event.key === 'string' && event.key.length <= 100;
+  if (event.type === 'keydown' || event.type === 'keyup') return typeof event.key === 'string' && event.key.length <= 100 && (event.code === undefined || typeof event.code === 'string' && event.code.length <= 100) && (event.repeat === undefined || typeof event.repeat === 'boolean');
   return true;
 }
 export class OutputMirror {

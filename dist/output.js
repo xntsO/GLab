@@ -1,19 +1,14 @@
+import {bindCanvasInput} from './emscripten-adapter.js?v=7';
 const $ = id => document.getElementById(id);
 const session = new URLSearchParams(location.hash.slice(1)).get('session');
 const channel = 'gllab-output-v1', parent = window.opener;
-let connected = false, generation = -1, frameTimer, drawing = false, lastMouse = {x:0,y:0};
+let connected = false, generation = -1, frameTimer, drawing = false;
 const send = (type, extra = {}) => {if (parent && !parent.closed) parent.postMessage({channel, session, type, ...extra}, location.origin);};
 function requestFrame(delay = 67) {clearTimeout(frameTimer); if (connected) frameTimer = setTimeout(() => send('request-frame'), delay);}
 function disconnect(message = 'Editor closed. Open the workspace to run again.') {connected = false; clearTimeout(frameTimer); $('status').textContent = message; $('stop').disabled = true; $('menu').hidden = true;}
 function input(event) {if (connected) send('input', {event});}
-function point(event) {const rect = $('canvas').getBoundingClientRect();return lastMouse = {x:Math.floor((event.clientX-rect.left)*$('canvas').width/rect.width),y:Math.floor((event.clientY-rect.top)*$('canvas').height/rect.height)};}
-const modifiers = e => (e.shiftKey?1:0)|(e.ctrlKey?2:0)|(e.altKey?4:0);
 const canvas = $('canvas'), context = canvas.getContext('2d');
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('pointerdown', e => {canvas.focus();canvas.setPointerCapture(e.pointerId);$('menu').hidden = true;input({type:'mouse',button:e.button,state:0,...point(e),modifiers:modifiers(e)});e.preventDefault();});
-canvas.addEventListener('pointerup', e => input({type:'mouse',button:e.button,state:1,...point(e),modifiers:modifiers(e)}));
-canvas.addEventListener('pointermove', e => input({type:e.buttons?'motion':'passive',...point(e),modifiers:modifiers(e)}));
-for (const type of ['keydown','keyup']) canvas.addEventListener(type, e => {if (e.ctrlKey || e.metaKey) return;input({type,key:e.key,...lastMouse,modifiers:modifiers(e)});if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Tab','Escape'].includes(e.key)) e.preventDefault();});
+bindCanvasInput(canvas,input,{pointerDown:()=>{$('menu').hidden=true;}});
 function showMenu(menu) {
   const popup = $('menu'); popup.replaceChildren();
   for (const item of menu.items) {const button = document.createElement('button');button.textContent = item.label+(item.sub?' >':'');button.setAttribute('role','menuitem');button.addEventListener('click', () => {input(item.sub?{type:'menuOpen',menu:item.sub,x:menu.x,y:menu.y}:{type:'menu',menu:menu.menu,value:item.value});if (!item.sub) {popup.hidden = true;canvas.focus();}});popup.append(button);}

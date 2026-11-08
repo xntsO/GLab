@@ -24,6 +24,22 @@ int main() { std::vector<int> v={3,1,2}; std::sort(v.begin(),v.end()); int sum=s
     {name:'unchanged lab 9 matrix transforms',language:'cpp',source:labs.find(lab=>lab.id==='9').code,active:true,nonUniform:true},
     {name:'unchanged lab 10 freeglut teapot',language:'cpp',source:labs.find(lab=>lab.id==='10').code,active:true,nonUniform:true},
     {name:'unchanged lab 11 GLU perspective and animation',language:'cpp',source:labs.find(lab=>lab.id==='11').code,active:true,nonUniform:true},
+    {name:'C GL/orbit.h drag helper math, callbacks and drawing',language:'c',active:true,inputSteps:[{event:{type:'mouse',button:0,state:0,x:50,y:50}},{event:{type:'mouse',button:0,state:1,x:50,y:50},expected:'click=0,0@50,50;\nclick=0,1@50,50;',pixel:[0,255,0,255]},{event:{type:'mouse',button:2,state:0,x:50,y:50}},{event:{type:'motion',buttons:2,x:99,y:50}},{event:{type:'mouse',button:2,state:1,x:99,y:50},pixel:[0,0,0,255]}],expected:'orbit-c=inverse:1;pan:50,100;reset:0',size:[100,100],pixel:[0,255,0,255],source:`#include <stdio.h>
+#include <GL/orbit.h>
+float background=0;
+void display(void){glClearColor(0,0,background,1);glClear(GL_COLOR_BUFFER_BIT);glPushMatrix();orbitApply();glColor3f(0,1,0);glRectf(-0.5f,-0.5f,0.5f,0.5f);glPopMatrix();glFlush();}
+void click(int b,int s,int x,int y){printf("click=%d,%d@%d,%d;\\n",b,s,x,y);fflush(stdout);if(b==GLUT_RIGHT_BUTTON)background=1;glutPostRedisplay();}
+int main(int argc,char**argv){
+  float m[16]={2,0,0,0, 0,4,0,0, 0,0,5,0, 1,2,3,1},inv[16];int ok,r,c,k;
+  glutInit(&argc,argv);glutInitDisplayMode(GLUT_SINGLE|GLUT_RGB);glutInitWindowSize(100,100);glutCreateWindow("orbit");
+  ok=orbitInvert(m,inv);
+  for(c=0;c<4;c++)for(r=0;r<4;r++){float s=0;for(k=0;k<4;k++)s+=m[k*4+r]*inv[c*4+k];if(s-(r==c)>1e-5f||s-(r==c)<-1e-5f)ok=0;}
+  glViewport(0,0,100,100);glMatrixMode(GL_PROJECTION);glLoadIdentity();glMatrixMode(GL_MODELVIEW);glLoadIdentity();
+  glPushMatrix();orbitApply();glPopMatrix();
+  orbitButton=GLUT_LEFT_BUTTON;orbitMoving=1;orbitDragged=1;orbitMotion(25,-50);orbitButton=-1;
+  printf("orbit-c=inverse:%d;pan:%d,%d;",ok,(int)(orbitPan[0]*100+0.5f),(int)(orbitPan[1]*100+0.5f));
+  orbitReset();printf("reset:%d\\n",(int)(orbitPan[0]*100));fflush(stdout);
+  glutDisplayFunc(display);orbitInstall(click);glutMainLoop();return 0;}`},
     {name:'unchanged lab 13 lighting and solid sphere',language:'cpp',source:labs.find(lab=>lab.id==='13').code,active:true,size:[500,500],nonUniform:true},
     {name:'fresh GLFW3 and GL4ES fixed-function pixels',language:'c',expected:'glfw-gl4es-pixel=255,0,255,255;error=0',size:[128,128],pixel:[255,0,255,255],source:`#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>

@@ -47,6 +47,29 @@ glutKeyboardFunc([](unsigned char key, int x, int y) {
 });
 glutMainLoop();</code></pre>
 <p>Keep callback state alive for the entire loop. Global and local static constructors run before their objects are used. <code>glutMainLoop()</code> does not return in this browser runtime. Static/global destructors run on normal console-program exit. During GLUT's loop, Emscripten keeps the runtime alive: <code>std::exit</code> prints a keepalive warning and does not stop the loop or run static destructors. Include <code>&lt;emscripten.h&gt;</code> and call <code>emscripten_force_exit(0)</code> for a true runtime shutdown that runs static/global destructors. Neither exit function unwinds automatic objects in <code>main</code>. The editor's Stop removes the sandbox and does not call C++ destructors, so perform any required cleanup explicitly.</p>
+<h2>Drag to rotate with &lt;GL/orbit.h&gt;</h2><p>GL Lab supplies a small header-only helper for C and C++. Left drag rotates, right drag or Shift + left drag moves the scene under the pointer, and the wheel zooms. Clicks without a drag still reach your own mouse function. It takes over <code>glutMouseFunc</code> and <code>glutMotionFunc</code>; call <code>orbitMotion(x, y)</code> from your own motion callback if you need one. <a href="emscripten/toolchain/compat/GL/orbit.h" download>Download orbit.h</a> to build the same program outside the browser.</p>
+<pre><code>#include &lt;GL/glut.h&gt;
+#include &lt;GL/orbit.h&gt;
+
+void display(void) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushMatrix();
+    orbitApply();        /* after the camera, before the shapes */
+    glutSolidTeapot(0.5);
+    glPopMatrix();
+    glutSwapBuffers();
+}
+
+int main(int argc, char **argv) {
+    glutInit(&amp;argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutCreateWindow("Drag me");
+    glEnable(GL_DEPTH_TEST);
+    glutDisplayFunc(display);
+    orbitInstall(NULL);  /* or orbitInstall(myMouse) to keep your clicks */
+    glutMainLoop();
+    return 0;
+}</code></pre>
 <h2>Event loops must yield</h2><p>Use GLUT callbacks or <code>emscripten_set_main_loop</code> for animation. A desktop <code>while</code> loop that never yields can freeze the browser tab. Stop can terminate compilation and cooperative running programs, but cannot reliably interrupt JavaScript or WebAssembly that blocks the tab's event loop.</p>
 <h2>SDK and threading</h2><p>This deployment pins Emscripten 3.1.24 and GL4ES 1.1.7. It is not the latest Emscripten SDK. The browser compiler is single-threaded; pthread/SharedArrayBuffer builds are outside the supported workspace configuration. Newer Emscripten ports and settings may be unavailable.</p>
 <h2>Verification scope</h2><p>The merge checks compile and execute source through the same Compiler and Runner used by the editor. They cover C console input, C++ standard-library and virtual-file operations, legacy GLUT/GLU drawing, GLFW, canvas pixels, keyboard input, compile-error recovery and stop/restart. This scope does not establish support for every OpenGL function, shader, extension or physical phone.</p>

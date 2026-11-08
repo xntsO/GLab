@@ -1,6 +1,6 @@
 import {createCompiler} from './emscripten/toolchain/compiler-client.js';
 import {installGL4ES, gl4esLinkArguments} from './emscripten/runtime/build-gl4es.js';
-import {installLegacyGL, legacyGLLinkArguments} from './emscripten/toolchain/legacy-gl.js?v=2';
+import {installLegacyGL, legacyGLLinkArguments} from './emscripten/toolchain/legacy-gl.js?v=3';
 
 const runtimeArgs = [
   '-sMODULARIZE=1', '-sEXPORT_NAME=GLLabModule', '-sINVOKE_RUN=0',

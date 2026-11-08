@@ -2,6 +2,9 @@
 // Every code string is a complete C/C++ GLUT program; the browser runtime
 // supplies the legacy graphics API.
 const header = '#include <GL/glut.h>\n';
+// GL Lab's drag-to-rotate helper (dist/emscripten/toolchain/compat/GL/orbit.h).
+const orbitHeader = '#include <GL/orbit.h>  /* GL Lab: click and drag to move in 3D */\n';
+const orbitNote = 'Drag with the left button to turn the scene. Drag with the right button (or Shift + left) to move it, and use the wheel to zoom. This comes from GL Lab’s <GL/orbit.h>: orbitApply() in display() and orbitInstall() in main().';
 
 function program2D(body, options = {}) {
   const { title = 'COMP 461', width = 500, height = 500,
@@ -368,12 +371,15 @@ int main(int argc, char **argv) {
     id: '10', title: 'A solid teapot', group: '3D & interaction', page: 37,
     description: 'Render the classic GLUT teapot in green.',
     exercise: 'Replace glutSolidTeapot with glutWireTeapot and reduce the size to 0.25.',
-    notes: ['The displaced glutSolidTeapot call is restored inside display().', 'The unlit solid teapot is a green silhouette, as in the manual. Lab 13 introduces lighting.'],
-    code: `${header}
+    notes: ['The displaced glutSolidTeapot call is restored inside display().', 'The unlit solid teapot is a green silhouette, as in the manual. Lab 13 introduces lighting.', orbitNote],
+    code: `${header}${orbitHeader}
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glColor3f(0.4,0.9,0.2);
+    glPushMatrix();
+    orbitApply();  /* drag to turn the teapot */
     glutSolidTeapot(0.5);
+    glPopMatrix();
     glFlush();
 }
 int main(int argc, char **argv) {
@@ -384,6 +390,7 @@ int main(int argc, char **argv) {
     glClearColor(0,0,0,1);
     glEnable(GL_DEPTH_TEST);
     glutDisplayFunc(display);
+    orbitInstall(NULL);
     glutMainLoop();
     return 0;
 }
@@ -393,8 +400,8 @@ int main(int argc, char **argv) {
     id: '11', title: 'Shapes & mouse events', group: '3D & interaction', page: 38,
     description: 'Spin wireframe shapes and select sphere, cube, cone, torus or teapot.',
     exercise: 'Decrease ROT_INC. Change the middle button to decrease speed instead of resetting it.',
-    notes: ['Left click increases speed. Middle click resets speed. Right click opens the shape menu. Keys 1–5 also select shapes.', 'The misplaced perspective call and menu cases are restored. Rotation uses the manual’s function pointer.'],
-    code: `${header}
+    notes: ['Left click increases speed. Middle click resets speed. Right click opens the shape menu. Keys 1–5 also select shapes.', 'The misplaced perspective call and menu cases are restored. Rotation uses the manual’s function pointer.', 'Drag with the left button to turn the shape, Shift + drag to move it, and use the wheel to zoom. The right button stays on the menu. <GL/orbit.h> passes clicks without a drag on to mouse().'],
+    code: `${header}${orbitHeader}
 const GLfloat ROT_INC = 0.1;
 GLfloat angle = 0.0, speed = ROT_INC;
 void drawSphere(void) { glutWireSphere(6.0,20,20); }
@@ -416,6 +423,7 @@ void setShape(int value) {
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glPushMatrix();
+    orbitApply();  /* drag to turn and move the shape */
     glRotatef(angle,1,1,1);
     (*drawShape)();
     glPopMatrix();
@@ -455,7 +463,7 @@ int main(int argc, char **argv) {
     glEnable(GL_DEPTH_TEST);
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutMouseFunc(mouse);
+    orbitInstall(mouse);  /* clicks still reach mouse() */
     glutKeyboardFunc(keyboard);
     glutIdleFunc(idle);
     glutCreateMenu(setShape);
@@ -474,12 +482,13 @@ int main(int argc, char **argv) {
     id: '12', title: 'Spinning plane', group: '3D & interaction', page: 44,
     description: 'Animate a white square with double buffering and an idle callback.',
     exercise: 'Make the middle button decrease rotation speed. Add vertex colors and smooth shading.',
-    notes: ['Left click starts spinning. Middle or right click stops it.', 'The manual’s displaced rotation, color and rectangle calls are restored between push and pop, before drawing.'],
-    code: `${header}
+    notes: ['Left click starts spinning. Middle or right click stops it.', 'The manual’s displaced rotation, color and rectangle calls are restored between push and pop, before drawing.', orbitNote + ' Tilt the plane to see that it is flat. The depth range is widened from ±1 to ±50 so the tilted square is not clipped.'],
+    code: `${header}${orbitHeader}
 GLfloat spin = 0.0;
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT);
     glPushMatrix();
+    orbitApply();  /* drag to tilt and move the plane */
     glRotatef(spin,0,0,1);
     glColor3f(1,1,1);
     glRectf(-25,-25,25,25);
@@ -495,7 +504,7 @@ void reshape(int w, int h) {
     glViewport(0,0,w,h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-50,50,-50,50,-1,1);
+    glOrtho(-50,50,-50,50,-50,50);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
@@ -514,7 +523,7 @@ int main(int argc, char **argv) {
     glShadeModel(GL_FLAT);
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutMouseFunc(mouse);
+    orbitInstall(mouse);  /* clicks still reach mouse() */
     glutMainLoop();
     return 0;
 }
@@ -524,24 +533,27 @@ int main(int argc, char **argv) {
     id: '13', title: 'Lighting a sphere', group: 'Light & materials', page: 47,
     description: 'Use smooth shading, a directional light and a specular material.',
     exercise: 'Compare shininess values 5, 50 and 100. Move the light by changing its x and y components.',
-    notes: ['The final light-position value is 0, so the light is directional.', 'Increasing shininess makes the highlight smaller and sharper.'],
-    code: `${header}
+    notes: ['The final light-position value is 0, so the light is directional.', 'Increasing shininess makes the highlight smaller and sharper.', orbitNote + ' The light is placed after orbitApply(), so it turns with the sphere and the highlight slides across it, as if you walked around the sphere.'],
+    code: `${header}${orbitHeader}
+GLfloat lightPosition[] = {1,1,1,0};
 void init(void) {
     GLfloat specular[] = {1,1,1,1};
     GLfloat shininess[] = {50};
-    GLfloat lightPosition[] = {1,1,1,0};
     glClearColor(0,0,0,1);
     glShadeModel(GL_SMOOTH);
     glMaterialfv(GL_FRONT,GL_SPECULAR,specular);
     glMaterialfv(GL_FRONT,GL_SHININESS,shininess);
-    glLightfv(GL_LIGHT0,GL_POSITION,lightPosition);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
 }
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushMatrix();
+    orbitApply();  /* drag to look around the sphere */
+    glLightfv(GL_LIGHT0,GL_POSITION,lightPosition);
     glutSolidSphere(1.0,20,16);
+    glPopMatrix();
     glFlush();
 }
 ${sphereReshape}
@@ -553,18 +565,34 @@ int main(int argc, char **argv) {
     init();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    orbitInstall(NULL);
     glutMainLoop();
     return 0;
 }
 `
   },
   {
-    id: '14', title: 'Change material color', group: 'Light & materials', page: 49,
-    description: 'Adjust a lit sphere’s red, green and blue diffuse reflection.',
-    exercise: 'Change the color step from 0.1 to 0.05. Compare GL_DIFFUSE with GL_AMBIENT_AND_DIFFUSE.',
-    notes: ['Left click changes red, middle click changes green, right click changes blue. Keys R, G and B do the same.', 'The displaced clear and color-update calls are restored inside their callbacks. The initial tracked color matches the material.'],
-    code: `${header}
+    id: '14', title: 'Material color & 3D drag', group: 'Light & materials', page: 49,
+    description: 'Adjust a lit shape’s red, green and blue diffuse reflection, and drag to turn and move it in 3D.',
+    exercise: 'Change the color step from 0.1 to 0.05. Compare GL_DIFFUSE with GL_AMBIENT_AND_DIFFUSE. Swap the two glRotatef calls in display() and feel how dragging changes.',
+    notes: ['Drag with the left button to rotate. Drag with the right button (or Shift + left) to move. The mouse wheel or + and − zoom. Arrow keys also rotate. Space resets the view.', 'A click without dragging still changes color: left is red, middle is green, right is blue. Keys R, G and B do the same.', 'Keys 1–4 pick a sphere, cube, torus or teapot. W toggles the wire grid that makes the rotation visible.', 'The light is set once in init() with an identity modelview, so it stays fixed to the camera while the shape turns.', 'The other 3D labs get the same dragging from GL Lab’s <GL/orbit.h>. This lab writes it out by hand so you can see how it works.'],
+    code: `${header}#include <stdlib.h>
+
 GLfloat diffuseMaterial[4] = {0.5,0.5,0.5,1.0};
+
+/* View state, changed by dragging. */
+float yaw = 30.0, pitch = 20.0;  /* rotation in degrees */
+float panX = 0.0, panY = 0.0;    /* position in world units */
+float zoom = 1.0;
+int shape = 1;                   /* 1 sphere, 2 cube, 3 torus, 4 teapot */
+int showGrid = 1;
+
+int windowW = 500, windowH = 500;
+int dragButton = -1;             /* button held down, or -1 */
+int moveMode = 0;                /* 0 rotate, 1 move */
+int dragged = 0;                 /* did the pointer travel far enough? */
+int pressX, pressY, lastX, lastY;
+
 void init(void) {
     GLfloat specular[] = {1,1,1,1};
     GLfloat lightPosition[] = {1,1,1,0};
@@ -581,10 +609,66 @@ void init(void) {
     glEnable(GL_COLOR_MATERIAL);
     glColor4fv(diffuseMaterial);
 }
+void drawShape(int wire) {
+    switch (shape) {
+    case 1:
+        glPushMatrix();
+        glRotatef(-90.0,1.0,0.0,0.0);  /* stand the poles upright, like a globe */
+        if (wire) glutWireSphere(1.0,20,16); else glutSolidSphere(1.0,20,16);
+        glPopMatrix();
+        break;
+    case 2: if (wire) glutWireCube(1.4); else glutSolidCube(1.4); break;
+    case 3: if (wire) glutWireTorus(0.35,0.8,16,32); else glutSolidTorus(0.35,0.8,16,32); break;
+    case 4: if (wire) glutWireTeapot(0.8); else glutSolidTeapot(0.8); break;
+    }
+}
 void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glutSolidSphere(1.0,20,16);
-    glFlush();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glTranslatef(panX,panY,0.0);   /* move */
+    glRotatef(pitch,1.0,0.0,0.0);  /* tilt up and down */
+    glRotatef(yaw,0.0,1.0,0.0);    /* turn left and right */
+
+    /* Push the solid back a little so the grid lines on its surface stay visible. */
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0,1.0);
+    drawShape(0);
+    glDisable(GL_POLYGON_OFFSET_FILL);
+
+    if (showGrid) {
+        glDisable(GL_LIGHTING);
+        glColor3f(diffuseMaterial[0]*0.35,diffuseMaterial[1]*0.35,diffuseMaterial[2]*0.35);
+        drawShape(1);
+        glEnable(GL_LIGHTING);
+        glColor4fv(diffuseMaterial);  /* restore the tracked material color */
+    }
+    glutSwapBuffers();
+}
+void setProjection(void) {
+    float w = windowW, h = windowH, size = 1.5/zoom;
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    if (w <= h)
+        glOrtho(-size,size,-size*h/w,size*h/w,-10.0,10.0);
+    else
+        glOrtho(-size*w/h,size*w/h,-size,size,-10.0,10.0);
+    glMatrixMode(GL_MODELVIEW);
+}
+void reshape(int w, int h) {
+    windowW = w < 1 ? 1 : w;
+    windowH = h < 1 ? 1 : h;
+    glViewport(0,0,windowW,windowH);
+    setProjection();
+}
+void setZoom(float z) {
+    zoom = z < 0.3 ? 0.3 : z > 4.0 ? 4.0 : z;
+    setProjection();
+    glutPostRedisplay();
+}
+void resetView(void) {
+    yaw = 30.0; pitch = 20.0; panX = 0.0; panY = 0.0;
+    setZoom(1.0);
 }
 void changeColor(int channel) {
     diffuseMaterial[channel] += 0.1;
@@ -592,28 +676,81 @@ void changeColor(int channel) {
     glColor4fv(diffuseMaterial);
     glutPostRedisplay();
 }
+void rotateBy(float dx, float dy) {
+    yaw += dx;
+    pitch += dy;
+    if (pitch > 90.0) pitch = 90.0;
+    if (pitch < -90.0) pitch = -90.0;
+    glutPostRedisplay();
+}
 void mouse(int button, int state, int x, int y) {
-    if (state != GLUT_DOWN) return;
+    if (button == 3 || button == 4) {            /* mouse wheel */
+        if (state == GLUT_DOWN) setZoom(button == 3 ? zoom*1.1 : zoom/1.1);
+        return;
+    }
+    if (state == GLUT_DOWN) {
+        if (dragButton != -1) return;            /* already dragging */
+        dragButton = button;
+        moveMode = button != GLUT_LEFT_BUTTON || (glutGetModifiers() & GLUT_ACTIVE_SHIFT);
+        dragged = 0;
+        pressX = lastX = x;
+        pressY = lastY = y;
+        return;
+    }
+    if (button != dragButton) return;
+    dragButton = -1;
+    if (dragged) return;                         /* a drag, not a click */
     if (button == GLUT_LEFT_BUTTON) changeColor(0);
     if (button == GLUT_MIDDLE_BUTTON) changeColor(1);
     if (button == GLUT_RIGHT_BUTTON) changeColor(2);
+}
+void motion(int x, int y) {
+    int dx, dy;
+    if (dragButton == -1) return;
+    if (!dragged && abs(x-pressX) + abs(y-pressY) < 4) return;
+    dragged = 1;
+    dx = x - lastX;
+    dy = y - lastY;
+    lastX = x;
+    lastY = y;
+    if (moveMode) {
+        /* Convert pixels to world units so the shape follows the pointer. */
+        float unitsPerPixel = 3.0/zoom/(windowW < windowH ? windowW : windowH);
+        panX += dx*unitsPerPixel;
+        panY -= dy*unitsPerPixel;               /* window y grows downward */
+        glutPostRedisplay();
+    } else {
+        rotateBy(dx*0.5,dy*0.5);
+    }
 }
 void keyboard(unsigned char key, int x, int y) {
     if (key == 'r' || key == 'R') changeColor(0);
     if (key == 'g' || key == 'G') changeColor(1);
     if (key == 'b' || key == 'B') changeColor(2);
+    if (key >= '1' && key <= '4') { shape = key - '0'; glutPostRedisplay(); }
+    if (key == 'w' || key == 'W') { showGrid = !showGrid; glutPostRedisplay(); }
+    if (key == '+' || key == '=') setZoom(zoom*1.1);
+    if (key == '-' || key == '_') setZoom(zoom/1.1);
+    if (key == ' ') resetView();
 }
-${sphereReshape}
+void special(int key, int x, int y) {
+    if (key == GLUT_KEY_LEFT) rotateBy(-5.0,0.0);
+    if (key == GLUT_KEY_RIGHT) rotateBy(5.0,0.0);
+    if (key == GLUT_KEY_UP) rotateBy(0.0,-5.0);
+    if (key == GLUT_KEY_DOWN) rotateBy(0.0,5.0);
+}
 int main(int argc, char **argv) {
     glutInit(&argc,argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(500,500);
-    glutCreateWindow("Sphere material color");
+    glutCreateWindow("Material color & 3D drag");
     init();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutMouseFunc(mouse);
+    glutMotionFunc(motion);
     glutKeyboardFunc(keyboard);
+    glutSpecialFunc(special);
     glutMainLoop();
     return 0;
 }
@@ -623,8 +760,8 @@ int main(int argc, char **argv) {
     id: '15', title: 'Perspective & camera', group: 'Light & materials', page: 53,
     description: 'Draw a slate-blue wire sphere through a perspective projection.',
     exercise: 'Change CAMERA_Z and the field of view. Replace the wire sphere with a solid sphere.',
-    notes: ['The missing glutInit is added. The misplaced height guard is repaired so only a zero height becomes 1.', 'The camera moves to z = -4.5 in the modelview transform. The light is positioned after that transform.'],
-    code: `${header}
+    notes: ['The missing glutInit is added. The misplaced height guard is repaired so only a zero height becomes 1.', 'The camera moves to z = -4.5 in the modelview transform. The light is positioned after that transform.', orbitNote + ' orbitApply() runs after the camera transform, so the sphere turns around its own centre. Moving it keeps it under the pointer, even in perspective.'],
+    code: `${header}${orbitHeader}
 const GLfloat CAMERA_Z = -4.5;
 GLfloat ambientLight[] = {0.3,0.3,0.3,1};
 GLfloat diffuseLight[] = {0.8,0.8,0.8,1};
@@ -635,6 +772,7 @@ void display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glColor3ub(150,150,250);
     glPushMatrix();
+    orbitApply();  /* drag to turn and move the sphere */
     glRotatef(45,1,1,1);
     glutWireSphere(1.0,30,30);
     glPopMatrix();
@@ -672,6 +810,7 @@ int main(int argc, char **argv) {
     init();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    orbitInstall(NULL);
     glutMainLoop();
     return 0;
 }
@@ -681,8 +820,8 @@ int main(int argc, char **argv) {
     id: '16', title: 'Twelve sphere materials', group: 'Light & materials', page: 57,
     description: 'Compare ambient, diffuse, specular and emissive materials in a 3 by 4 grid.',
     exercise: 'Change the blue diffuse color and the emission color. Compare low and high shininess.',
-    notes: ['Rows, top to bottom: no ambient, gray ambient, colored ambient. Columns: diffuse only, shininess 5, shininess 100, emission.', 'Repeated sphere blocks are expressed as loops with the same material values.', 'The orthographic bounds include all three complete rows, avoiding clipping at the default aspect ratio.'],
-    code: `${header}
+    notes: ['Rows, top to bottom: no ambient, gray ambient, colored ambient. Columns: diffuse only, shininess 5, shininess 100, emission.', 'Repeated sphere blocks are expressed as loops with the same material values.', 'The orthographic bounds include all three complete rows, avoiding clipping at the default aspect ratio.', orbitNote + ' The whole grid turns around its centre while the light stays fixed, so you can compare the materials from any angle.'],
+    code: `${header}${orbitHeader}
 void init(void) {
     GLfloat ambient[] = {0,0,0,1};
     GLfloat white[] = {1,1,1,1};
@@ -709,6 +848,8 @@ void display(void) {
     GLfloat specular[] = {1,1,1,1};
     GLfloat emission[] = {0.3,0.2,0.2,1};
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glPushMatrix();
+    orbitApply();  /* drag to turn the whole grid */
     for (int row=0; row<3; row++) {
         for (int column=0; column<4; column++) {
             glPushMatrix();
@@ -729,6 +870,7 @@ void display(void) {
             glPopMatrix();
         }
     }
+    glPopMatrix();
     glFlush();
 }
 void reshape(int w, int h) {
@@ -751,6 +893,7 @@ int main(int argc, char **argv) {
     init();
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
+    orbitInstall(NULL);
     glutMainLoop();
     return 0;
 }

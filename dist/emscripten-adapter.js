@@ -1,4 +1,4 @@
-export {Compiler} from './emscripten-compiler.js?v=7';
+export {Compiler} from './emscripten-compiler.js?v=8';
 
 /** Keep the established GL Lab canvas and controls around a real Emscripten module. */
 export class Runner {

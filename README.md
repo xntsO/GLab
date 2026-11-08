@@ -20,6 +20,10 @@ C++17 supports classes, inheritance and virtual interfaces, RTTI, templates, STL
 
 GLUT takes plain function pointers. Use a static member callback or a captureless lambda that forwards to a static/global `Game` instance. A capturing lambda or non-static member function cannot be passed directly. Keep callback state alive after `glutMainLoop()`, which does not return in the browser. Global and local static constructors run normally; their destructors run on normal console-program exit. GLUT keeps the runtime alive, so `std::exit` in a GLUT callback does not run static destructors or stop the loop. Use `emscripten_force_exit(0)` from `<emscripten.h>` when a true runtime shutdown and static cleanup are required. Neither exit function unwinds automatic objects in `main`; the editor's Stop discards the sandbox without C++ cleanup. Release resources explicitly before stopping if cleanup matters. See the [callback example and limitations](dist/compatibility.html).
 
+## Drag to rotate: `<GL/orbit.h>`
+
+The compiler supplies a header-only helper, `dist/emscripten/toolchain/compat/GL/orbit.h`, that works in C and C++. Add `#include <GL/orbit.h>`, call `orbitApply()` in `display()` after the camera transform and before drawing (between `glPushMatrix()`/`glPopMatrix()`), and call `orbitInstall(NULL)` in `main()`. To keep your own click handling, pass your mouse function instead: `orbitInstall(mouse)`. Left drag rotates. Right drag, or Shift + left drag, moves the scene under the pointer, including in perspective. The wheel zooms. A click without a drag still reaches your function as `GLUT_DOWN` then `GLUT_UP`. The helper takes over `glutMouseFunc` and `glutMotionFunc`; a program with its own motion callback can call `orbitMotion(x, y)` from it. Labs 10–13, 15 and 16 use it. Lab 14 writes the same controls out by hand. Copy the header next to your program to build it outside the browser.
+
 ## Run locally
 
 Clone the repository and serve the static directory with Python 3:

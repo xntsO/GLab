@@ -1,4 +1,4 @@
-import {bindCanvasInput} from './emscripten-adapter.js?v=7';
+import {bindCanvasInput} from './emscripten-adapter.js?v=8';
 const $ = id => document.getElementById(id);
 const session = new URLSearchParams(location.hash.slice(1)).get('session');
 const channel = 'gllab-output-v1', parent = window.opener;

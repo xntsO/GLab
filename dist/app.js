@@ -1,5 +1,5 @@
-import {labs, starter} from './labs.js?v=2';
-import {Compiler, Runner, bindCanvasInput} from './emscripten-adapter.js?v=7';
+import {labs, starter} from './labs.js?v=3';
+import {Compiler, Runner, bindCanvasInput} from './emscripten-adapter.js?v=8';
 import {snapshot, sameSnapshot, validSnapshot, needsBackup, copySource} from './backup.js?v=5';
 import {OutputMirror} from './output-mirror.js?v=9';
 
